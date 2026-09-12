@@ -2,10 +2,13 @@ import { createHash, randomUUID } from 'node:crypto';
 import { constants, closeSync, fstatSync, lstatSync, mkdirSync, openSync, readSync, realpathSync, unlinkSync, writeFileSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve, sep, win32 } from 'node:path';
 import { MailError } from './errors.js';
+import { RECEIVE_MESSAGE_LIMIT_BYTES, SMTP_MESSAGE_LIMIT_BYTES } from './limits.js';
 
-export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
-export const MAX_TOTAL_ATTACHMENT_BYTES = 20 * 1024 * 1024;
-export const MAX_ATTACHMENT_MESSAGE_BYTES = 30 * 1024 * 1024;
+// Early rejection of files which cannot possibly fit. Actual MIME size is
+// checked separately; there is no additional 10 MiB per-file / 20 MiB total cap.
+export const MAX_ATTACHMENT_BYTES = SMTP_MESSAGE_LIMIT_BYTES;
+export const MAX_TOTAL_ATTACHMENT_BYTES = SMTP_MESSAGE_LIMIT_BYTES;
+export const MAX_ATTACHMENT_MESSAGE_BYTES = RECEIVE_MESSAGE_LIMIT_BYTES;
 
 export function digest(content: Buffer) { return createHash('sha256').update(content).digest('hex'); }
 
@@ -59,7 +62,7 @@ export class AttachmentStore {
       if (!inside(root, realpathSync(target))) throw new MailError('INVALID_ATTACHMENT_PATH', 'Attachment path leaves the configured folder.');
       const before = lstatSync(target);
       if (!before.isFile() || before.nlink !== 1) throw new MailError('INVALID_ATTACHMENT_PATH', 'Only regular files without hard links may be attached.');
-      if (before.size > MAX_ATTACHMENT_BYTES) throw new MailError('ATTACHMENT_TOO_LARGE', 'Each attachment must be at most 10 MiB.');
+      if (before.size > MAX_ATTACHMENT_BYTES) throw new MailError('ATTACHMENT_TOO_LARGE', `The file alone exceeds the ${SMTP_MESSAGE_LIMIT_BYTES}-byte SMTP message limit.`);
       fd = openSync(target, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | constants.O_NONBLOCK);
       const opened = fstatSync(fd);
       if (!opened.isFile() || opened.nlink !== 1 || opened.dev !== before.dev || opened.ino !== before.ino || opened.size > MAX_ATTACHMENT_BYTES) {
@@ -87,7 +90,7 @@ export class AttachmentStore {
   }
 
   save(content: Buffer, originalFilename?: string, saveAs?: string) {
-    if (content.length > MAX_ATTACHMENT_BYTES) throw new MailError('ATTACHMENT_TOO_LARGE', 'Each download must be at most 10 MiB.');
+    if (content.length > RECEIVE_MESSAGE_LIMIT_BYTES) throw new MailError('ATTACHMENT_TOO_LARGE', 'Download exceeds the 40 MiB incoming message parsing ceiling.');
     if (saveAs !== undefined && !safeFilename(saveAs)) throw new MailError('INVALID_ATTACHMENT_PATH', 'save_as must be a plain filename, not a path, hidden file or reserved device name.');
     const root = this.root();
     const filename = saveAs ?? downloadName(originalFilename);

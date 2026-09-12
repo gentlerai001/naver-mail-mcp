@@ -43,7 +43,7 @@ export const sendSchema = z.object({
     path: z.string().min(1).max(500).describe('Relative local path inside NAVER_ATTACHMENT_DIR. No URLs, absolute paths, traversal or links.'),
     filename: z.string().refine(safeFilename, 'Use a plain filename').optional().describe('Optional filename shown to recipients.'),
     expected_sha256: z.string().regex(/^[a-f0-9]{64}$/).optional().describe('Optional SHA-256 from preview; fail if local file contents changed.'),
-  }).strict()).max(10).default([]).describe('Up to 10 files, each <=10 MiB and <=20 MiB total. Preview returns metadata and hashes, not file contents.'),
+  }).strict()).max(10).default([]).describe('Up to 10 files. The whole encoded email must fit 39,845,888 bytes (NAVER SMTP SIZE verified 2026-09-12). Preview reports actual encoded size and file hashes. No separate 10 MiB file or 20 MiB total limit.'),
   in_reply_to: header.max(998).regex(/^<[^<>\s]+>$/).optional().describe('Original Message-ID when replying.'),
   references: z.array(header.max(998).regex(/^<[^<>\s]+>$/)).max(20).optional(),
   dry_run: z.boolean().default(false).describe('If true, return the exact message preview without contacting SMTP.'),

@@ -219,7 +219,7 @@ HTML 메일은 필수 `text`에 텍스트 대체 본문을, 선택 `html`에 HTM
 
 `save_as`는 폴더를 포함하지 않는 파일명입니다. 생략하면 원본 이름을 정리하고 임의 접두사를 붙여 안전한 이름을 생성합니다. 기존 파일은 덮어쓰지 않으며, 결과에는 상대 경로 `path`, 절대 경로 `absolute_path`, 크기와 `sha256`이 포함됩니다. 파일 내용은 도구 응답에 넣지 않습니다. 메일의 읽음 상태도 바꾸지 않습니다.
 
-첨부 작업은 **MIME 인코딩을 포함한 메일 원문 전체를 메모리에서 해석**하므로 원문 30 MiB까지만 지원합니다. `get_email`의 본문 읽기 한도 10 MiB를 넘는 메일은 `list_attachments`를 별도로 사용하세요. 첨부파일 한 개의 다운로드 한도는 디코딩 후 10 MiB입니다. 본문 인라인 이미지도 MIME 첨부로 포함될 수 있습니다. 파일을 실행하거나 압축을 자동 해제하지 않습니다.
+첨부 작업은 **MIME 인코딩을 포함한 메일 원문 전체를 메모리에서 해석**합니다. 네이버의 수신 한도 40MB 안내를 수용하도록 본문·첨부 작업의 파싱 상한을 모두 40 MiB(41,943,040바이트)로 통일했습니다. 공식 문서가 MB의 바이트 환산 방식을 명시하지 않아 두 해석을 모두 수용하는 버퍼 상한을 사용하며, 이 값이 서버의 정확한 수신 허용 바이트 수라는 의미는 아닙니다. 별도의 다운로드 파일당 10 MiB 제한은 없습니다. 본문 인라인 이미지도 MIME 첨부로 포함될 수 있습니다. 파일을 실행하거나 압축을 자동 해제하지 않습니다. [네이버 수신 한도 안내](https://help.naver.com/service/30029/contents/21233?lang=ko&osType=COMMONOS)
 
 ### 첨부파일 보내기
 
@@ -239,7 +239,7 @@ HTML 메일은 필수 `text`에 텍스트 대체 본문을, 선택 `html`에 HTM
 }
 ```
 
-`path`는 첨부 폴더 기준 상대 경로이며 하위 폴더도 사용할 수 있습니다. `filename`은 수신자에게 보일 파일명으로 생략할 수 있습니다. 미리보기는 파일을 읽어 이름·크기·SHA-256을 반환하지만 발송하지 않습니다. 실제 전송 때 첨부 항목의 `expected_sha256`에 미리보기 해시를 넣으면 파일 변경 시 전송을 막습니다.
+`path`는 첨부 폴더 기준 상대 경로이며 하위 폴더도 사용할 수 있습니다. `filename`은 수신자에게 보일 파일명으로 생략할 수 있습니다. 미리보기는 파일을 읽어 이름·크기·SHA-256과 메일 전체의 인코딩 후 바이트 수 `encoded_message_bytes`, 선검사 한도 `smtp_limit_bytes`를 반환하지만 발송하지 않습니다. 실제 전송 때 첨부 항목의 `expected_sha256`에 미리보기 해시를 넣으면 파일 변경 시 전송을 막습니다.
 
 ```json
 {
@@ -249,7 +249,21 @@ HTML 메일은 필수 `text`에 텍스트 대체 본문을, 선택 `html`에 HTM
 }
 ```
 
-위 `expected_sha256` 예시 문구는 실제 해시로 바꿔야 합니다. 미리보기 후 `dry_run: false`로 호출하면 전송합니다. 첨부가 있으면 `multipart/mixed`로 구성하고 HTML·텍스트 대체 본문도 함께 유지합니다. 전송 시 파일 내용을 메모리에 읽어 고정한 뒤 Nodemailer에 Buffer로 전달합니다.
+위 `expected_sha256` 예시 문구는 실제 해시로 바꿔야 합니다. 미리보기 후 `dry_run: false`로 호출하면 전송합니다. 첨부가 있으면 `multipart/mixed`로 구성하고 HTML·텍스트 대체 본문도 함께 유지합니다. 전송 시 파일 내용을 메모리에 읽어 고정하고, MIME 스트림의 실제 바이트 수를 세면서 한도 초과 시 중단합니다. 한도 안이면 검사한 MIME 원문 그대로 전송하며 SMTP `SIZE`에도 실제 바이트 수를 전달합니다.
+
+### 네이버 실제 크기 한도
+
+2026-09-12에 `smtp.naver.com:587`에 인증서 검증을 켠 STARTTLS로 접속해 EHLO 응답을 직접 확인했습니다. 로그인과 메일 발송 없이 서버 기능만 조회한 결과입니다.
+
+```text
+SIZE 39845888
+```
+
+따라서 SMTP 발송 선검사 기준은 **메일 전체 인코딩 후 39,845,888바이트 = 38 MiB**입니다. 헤더·본문·HTML·첨부·MIME 경계·base64 줄바꿈까지 포함합니다. 별도의 파일당 10 MiB / 원본 합계 20 MiB 제한은 제거했습니다. 파일 크기만으로 발송 가능 여부를 판정하지 않습니다. 예를 들어 테스트용 바이너리 25 MiB 파일은 통과하지만 28 MiB 파일은 base64 인코딩 후 한도를 넘습니다. 실제 첨부 가능 크기는 본문·파일명·파일 수에 따라 달라집니다.
+
+발송하는 SMTP 연결에도 실제 메시지 크기를 넘기므로, 서버가 더 낮은 `SIZE`를 알리면 Nodemailer가 `MAIL FROM`·`DATA` 전에 거절합니다. 38 MiB는 위 확인일의 기본 선검사 값이며 서버가 앞으로 한도를 높이면 [`src/limits.ts`](src/limits.ts)의 기준도 다시 확인해 갱신해야 합니다. 수신자 서비스의 별도 한도나 콘텐츠 정책에 따라 나중에 거절될 수 있습니다.
+
+네이버 **웹메일**은 10MB 이상의 파일을 대용량 파일로 분류하며 파일당 2GB, 메일당 최대 10개를 안내합니다. 이것은 웹 업로드 후 링크로 전달하는 별도 기능으로, SMTP에 2GB 첨부를 직접 넣을 수 있다는 의미가 아닙니다. 이 프로젝트는 대용량 링크 업로드를 구현하지 않습니다. [네이버 파일 첨부 안내](https://help.naver.com/service/30029/contents/21293?lang=ko&osType=PC)
 
 ### 발송 결과와 재시도
 
@@ -264,9 +278,9 @@ HTML 메일은 필수 `text`에 텍스트 대체 본문을, 선택 `html`에 HTM
 ## 범위와 제한
 
 - 개인 `@naver.com` 계정 한 개 / 프로세스. NAVER WORKS, `@me.com` 별칭, OAuth 로그인은 지원하지 않습니다.
-- 첨부 발송은 최대 10개, 파일당 10 MiB, 원본 파일 합계 20 MiB입니다. MIME 인코딩으로 실제 메일 크기는 커집니다. 이 한도는 프로젝트의 한도이며 네이버 서버가 별도로 발송을 제한할 수 있습니다.
-- 첨부 목록/다운로드는 원문 30 MiB, 다운로드 파일당 10 MiB까지입니다. 웹링크 방식의 네이버 대용량 첨부는 자동 다운로드하지 않습니다. CID 이미지 삽입은 아직 지원하지 않습니다.
-- 본문 읽기는 첨부파일을 포함한 원문 최대 10 MiB. 기본 20,000자, 최대 100,000자를 반환하며 잘렸는지 표시합니다.
+- SMTP 발송은 실제 인코딩된 메일 전체 38 MiB 이내이며 더 낮은 서버 `SIZE`도 적용합니다. 첨부 개수 최대 10개는 프로젝트의 도구 입력 제한이며 SMTP가 광고한 개수 한도는 아닙니다.
+- 본문·첨부 작업은 수신 원문 파싱 상한 40 MiB를 공유하며 파일당 10 MiB 제한은 없습니다. 웹링크 방식의 네이버 대용량 첨부는 자동 다운로드하지 않습니다. CID 이미지 삽입은 아직 지원하지 않습니다.
+- 본문은 기본 20,000자, 최대 100,000자를 반환하며 잘렸는지 표시합니다.
 - 검색은 페이지당 최대 50개, 발송은 참조·숨은참조를 포함해 최대 20개 주소입니다.
 - 삭제, 이동, 읽음 변경, 예약 발송, 백그라운드 수신 감시는 제공하지 않습니다.
 - SMTP 발송 후 별도 IMAP 보낸메일함 저장은 수행하지 않습니다. 네이버의 자동 저장 동작은 실제 계정에서 확인해야 합니다.
@@ -314,7 +328,7 @@ npm.cmd start
 | 인증 실패 | IMAP 사용함, 2단계 인증, 애플리케이션 비밀번호 |
 | 앱에 도구가 없음 | 빌드 완료, 절대 경로, Node 경로, 앱 완전 재시작 |
 | `STALE_UID` | 메일함 식별자가 바뀜. 다시 검색한 결과로 조회 |
-| `MESSAGE_TOO_LARGE` | 본문 조회 원문 10 MiB, 첨부 작업 원문 30 MiB 한도 확인 |
+| `MESSAGE_TOO_LARGE` | 발송은 인코딩 후 38 MiB 및 서버 SIZE, 수신 파싱은 원문 40 MiB 상한 확인 |
 | `ATTACHMENT_READ_FAILED` | 첨부 폴더 안에 해당 상대 경로의 파일이 있는지 확인 |
 | `ATTACHMENT_CHANGED` | 미리보기 이후 파일이 바뀜. 다시 미리보기한 뒤 해시 갱신 |
 | `ATTACHMENT_EXISTS` | 다른 `save_as` 이름을 사용하거나 이름 자동 생성 |
@@ -334,6 +348,6 @@ npm pack --dry-run
 
 ## English
 
-Local stdio MCP server for personal NAVER Mail accounts. Provides mailbox listing, filtered search with UID pagination, decoded message reading, attachment listing/downloads, text/HTML/attachment SMTP sending (cc/bcc/reply headers), dry-run previews, and authentication checks. Requires Node.js 22+, NAVER IMAP/SMTP enabled, two-step verification, and an application password. Attachments stay inside NAVER_ATTACHMENT_DIR (default: attachments/ beside the env file). Up to 10 attachments, 10 MiB per file and 20 MiB per send. Attachment downloads parse raw messages up to 30 MiB and never overwrite existing files.
+Local stdio MCP server for personal NAVER Mail accounts. Provides mailbox listing, filtered search with UID pagination, decoded message reading, attachment listing/downloads, text/HTML/attachment SMTP sending (cc/bcc/reply headers), dry-run previews, and authentication checks. Requires Node.js 22+, NAVER IMAP/SMTP enabled, two-step verification, and an application password. Attachments stay inside NAVER_ATTACHMENT_DIR (default: attachments/ beside the env file). Up to 10 attachments. The entire MIME-encoded outgoing message must fit 39,845,888 bytes (38 MiB), directly verified via NAVER SMTP EHLO on 2026-09-12. Any lower SIZE advertised by the live SMTP connection is also enforced. Incoming message parsing uses a 40 MiB ceiling to accommodate NAVER's documented 40 MB receive limit. Downloads never overwrite existing files. No separate 10 MiB file or 20 MiB total attachment cap remains.
 
 Run `npm ci && npm run build`, copy `.env.example` to `.env`, fill in your account, and use the client configurations in `examples/` with absolute paths. Launch `node /absolute/path/dist/index.js` with `NAVER_ENV_FILE=/absolute/path/.env`. Credentials remain local; retrieved mail is returned to your AI client. Send deduplication is in-memory and process-local. This unofficial project is not affiliated with NAVER, OpenAI, or Anthropic. MIT licensed.

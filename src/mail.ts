@@ -5,11 +5,13 @@ import nodemailer, { type Transporter } from 'nodemailer';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { AttachmentStore, digest, MAX_ATTACHMENT_MESSAGE_BYTES, MAX_TOTAL_ATTACHMENT_BYTES } from './attachments.js';
+import { RECEIVE_MESSAGE_LIMIT_BYTES, SMTP_MESSAGE_LIMIT_BYTES } from './limits.js';
+import { compileMessage } from './mime.js';
 import type { Config } from './config.js';
 import { MailError } from './errors.js';
 import type { AttachmentMessageInput, DownloadInput, ReadInput, SearchInput, SendInput } from './schemas.js';
 
-export const MAX_MESSAGE_BYTES = 10 * 1024 * 1024;
+export const MAX_MESSAGE_BYTES = RECEIVE_MESSAGE_LIMIT_BYTES;
 export interface MailBackend {
   listMailboxes(): Promise<unknown>;
   searchEmails(input: SearchInput): Promise<unknown>;
@@ -150,11 +152,11 @@ export class NaverMail implements MailBackend {
         const meta = await client.fetchOne(input.uid, { uid: true, size: true, envelope: true, flags: true, internalDate: true }, { uid: true });
         if (!meta) throw new MailError('NOT_FOUND', 'Message no longer exists in this mailbox. Search again.');
         if (meta.size === undefined || meta.size > MAX_MESSAGE_BYTES) {
-          throw new MailError('MESSAGE_TOO_LARGE', 'Reading requires a known message size of at most 10 MiB, including attachments.');
+          throw new MailError('MESSAGE_TOO_LARGE', 'Reading requires a known message size of at most 40 MiB, including attachments.');
         }
         const message = await client.fetchOne(input.uid, { source: { maxLength: MAX_MESSAGE_BYTES + 1 } }, { uid: true });
         if (!message || !message.source) throw new MailError('NOT_FOUND', 'Message content is unavailable.');
-        if (message.source.length > MAX_MESSAGE_BYTES) throw new MailError('MESSAGE_TOO_LARGE', 'Message exceeds the 10 MiB read limit.');
+        if (message.source.length > MAX_MESSAGE_BYTES) throw new MailError('MESSAGE_TOO_LARGE', 'Message exceeds the 40 MiB incoming message parsing ceiling.');
         const parsed = await simpleParser(message.source, { skipHtmlToText: false, skipTextToHtml: true, skipImageLinks: true });
         const body = parsed.text ?? '';
         return {
@@ -189,11 +191,11 @@ export class NaverMail implements MailBackend {
         const meta = await client.fetchOne(input.uid, { size: true }, { uid: true });
         if (!meta) throw new MailError('NOT_FOUND', 'Message no longer exists. Search again.');
         if (meta.size === undefined || meta.size > MAX_ATTACHMENT_MESSAGE_BYTES) {
-          throw new MailError('MESSAGE_TOO_LARGE', 'Attachment operations support messages up to 30 MiB including MIME encoding.');
+          throw new MailError('MESSAGE_TOO_LARGE', 'Attachment operations support messages up to 40 MiB including MIME encoding.');
         }
         const message = await client.fetchOne(input.uid, { source: { maxLength: MAX_ATTACHMENT_MESSAGE_BYTES + 1 } }, { uid: true });
         if (!message || !message.source) throw new MailError('NOT_FOUND', 'Message content is unavailable.');
-        if (message.source.length > MAX_ATTACHMENT_MESSAGE_BYTES) throw new MailError('MESSAGE_TOO_LARGE', 'Message exceeds the 30 MiB attachment limit.');
+        if (message.source.length > MAX_ATTACHMENT_MESSAGE_BYTES) throw new MailError('MESSAGE_TOO_LARGE', 'Message exceeds the 40 MiB incoming message parsing ceiling.');
         return await simpleParser(message.source, { skipHtmlToText: true, skipTextToHtml: true, skipImageLinks: true });
       } finally { lock.release(); }
     });
@@ -218,7 +220,7 @@ export class NaverMail implements MailBackend {
     const files = input.attachments.map(file => {
       const loaded = this.attachmentStore().read(file.path, file.filename, file.expected_sha256);
       totalSize += loaded.size;
-      if (totalSize > MAX_TOTAL_ATTACHMENT_BYTES) throw new MailError('ATTACHMENT_TOTAL_TOO_LARGE', 'Attachments must total at most 20 MiB.');
+      if (totalSize > MAX_TOTAL_ATTACHMENT_BYTES) throw new MailError('ATTACHMENT_TOTAL_TOO_LARGE', `Raw attachments alone exceed the ${SMTP_MESSAGE_LIMIT_BYTES}-byte SMTP message limit.`);
       return loaded;
     });
     const content = {
@@ -227,7 +229,15 @@ export class NaverMail implements MailBackend {
       inReplyTo: input.in_reply_to, references: input.references,
       attachments: files.map(({ content: _bytes, ...metadata }) => metadata),
     };
-    if (input.dry_run) return { status: 'preview', request_id: input.request_id, message: content };
+    const messageId = `<${randomUUID()}@naver.com>`;
+    const prepare = () => compileMessage({
+      ...content, messageId,
+      attachments: files.map(file => ({ filename: file.filename, content: file.content, contentDisposition: 'attachment' })),
+    });
+    if (input.dry_run) {
+      const prepared = await prepare();
+      return { status: 'preview', request_id: input.request_id, message: content, encoded_message_bytes: prepared.size, smtp_limit_bytes: SMTP_MESSAGE_LIMIT_BYTES };
+    }
     const hash = createHash('sha256').update(JSON.stringify(content)).digest('hex');
     const previous = this.sends.get(input.request_id);
     if (previous) {
@@ -237,21 +247,26 @@ export class NaverMail implements MailBackend {
     if (this.sends.size >= 1000) throw new MailError('SEND_LIMIT', 'This process reached 1000 send attempts. Review prior deliveries before restarting.');
     // Defer SMTP until the deduplication entry exists, including concurrent retries.
     const result = Promise.resolve().then(async () => {
+      const prepared = await prepare();
       const transport = this.makeSmtp();
-      const messageId = `<${randomUUID()}@naver.com>`;
       try {
         const info = await transport.sendMail({
-          ...content, messageId,
-          attachments: files.map(file => ({ filename: file.filename, content: file.content, contentDisposition: 'attachment' })),
+          raw: prepared.raw, envelope: prepared.envelope, messageId,
           disableFileAccess: true, disableUrlAccess: true,
         });
         return {
           status: info.rejected?.length ? 'partially_accepted' : 'accepted',
           request_id: input.request_id, message_id: info.messageId ?? messageId,
+          encoded_message_bytes: prepared.size, smtp_limit_bytes: SMTP_MESSAGE_LIMIT_BYTES,
           accepted: info.accepted ?? [], rejected: info.rejected ?? [],
           note: 'SMTP acceptance is not proof of inbox delivery. Do not resend to already accepted recipients.',
         };
-      } catch {
+      } catch (error) {
+        // Nodemailer checks envelope.size against this connection's advertised
+        // SIZE before MAIL FROM. A lower live limit is a definite no-send result.
+        if (error instanceof Error && /^Message size larger than allowed \d+$/.test(error.message)) {
+          throw new MailError('MESSAGE_TOO_LARGE', 'The SMTP server currently advertises a lower limit than this message size. No message was sent.');
+        }
         throw new MailError('SEND_FAILED_OR_UNKNOWN', 'SMTP send failed or its outcome is uncertain. This request_id will not be retried in this process. Check NAVER sent mail and delivery status before starting another send.');
       } finally { transport.close(); }
     });

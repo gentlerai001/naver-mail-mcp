@@ -9,6 +9,7 @@ import { AttachmentStore, digest, MAX_ATTACHMENT_BYTES, MAX_ATTACHMENT_MESSAGE_B
 import { NaverMail } from '../src/mail.js';
 import { attachmentMessageSchema, downloadSchema, sendSchema } from '../src/schemas.js';
 import { loadConfig } from '../src/config.js';
+import { simpleParser } from 'mailparser';
 
 function directory(t: TestContext) {
   const parent = mkdtempSync(join(tmpdir(), 'naver-attachments-'));
@@ -63,7 +64,7 @@ test('rejects hard links and linked directories pointing outside the folder', t 
 test('enforces individual size and expected hash before any SMTP connection', async t => {
   const { root, store } = directory(t);
   writeFileSync(join(root, 'large.bin'), Buffer.alloc(MAX_ATTACHMENT_BYTES + 1));
-  assert.throws(() => store.read('large.bin'), /10 MiB/);
+  assert.throws(() => store.read('large.bin'), /SMTP message limit/);
   writeFileSync(join(root, 'small.txt'), 'original');
   const hash = store.read('small.txt').sha256;
   writeFileSync(join(root, 'small.txt'), 'changed');
@@ -89,8 +90,9 @@ test('preview lists metadata without exposing bytes; retries bind to attachment 
   const { root } = directory(t); writeFileSync(join(root, 'file.txt'), 'first');
   let sends = 0;
   const mail = new NaverMail({ ...config, attachmentDir: root }, undefined, () => ({
-    sendMail: async (options: { attachments: { content: Buffer; path?: string }[] }) => {
-      sends++; assert.ok(Buffer.isBuffer(options.attachments[0].content)); assert.equal(options.attachments[0].path, undefined);
+    sendMail: async (options: { raw: Buffer; envelope: { size: number } }) => {
+      sends++; assert.ok(Buffer.isBuffer(options.raw)); assert.equal(options.envelope.size, options.raw.length);
+      const parsed = await simpleParser(options.raw); assert.equal(parsed.attachments[0].content.toString(), 'first');
       return { accepted: ['recipient@example.com'], rejected: [] };
     }, close() {},
   }) as unknown as Transporter);
@@ -106,7 +108,7 @@ test('preview lists metadata without exposing bytes; retries bind to attachment 
 test('enforces total attachment size and count', async t => {
   const { root } = directory(t); writeFileSync(join(root, 'large.bin'), Buffer.alloc(MAX_ATTACHMENT_BYTES));
   const mail = new NaverMail({ ...config, attachmentDir: root }, undefined, () => assert.fail('must not connect'));
-  await assert.rejects(mail.sendEmail(sendInput({ attachments: Array(3).fill({ path: 'large.bin' }) })), /20 MiB/);
+  await assert.rejects(mail.sendEmail(sendInput({ attachments: Array(2).fill({ path: 'large.bin' }) })), /SMTP message limit/);
   assert.equal(sendSchema.safeParse({ ...sendInput(), attachments: Array(11).fill({ path: 'large.bin' }) }).success, false);
   assert.equal(sendSchema.safeParse({ ...sendInput(), attachments: [{ href: 'https://example.com/file' }] }).success, false);
 });
@@ -150,7 +152,7 @@ test('rejects stale identity, oversized messages and missing indexes without cre
   const { root } = directory(t); const { raw } = await rawMail();
   for (const [overrides, index, pattern] of [
     [{ mailbox: { uidValidity: 999n } }, 0, /identity changed/],
-    [{ fetchOne: async () => ({ size: MAX_ATTACHMENT_MESSAGE_BYTES + 1 }) }, 0, /30 MiB/],
+    [{ fetchOne: async () => ({ size: MAX_ATTACHMENT_MESSAGE_BYTES + 1 }) }, 0, /40 MiB/],
     [{}, 99, /index is not present/],
   ] as const) {
     const { client } = imap(raw, overrides);

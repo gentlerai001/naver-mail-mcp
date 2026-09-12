@@ -155,6 +155,7 @@ test('actual SMTP exchange preserves Korean/reply headers, hides Bcc and reports
   const fileBytes = Buffer.from([0, 1, 2, 127, 128, 255]);
   writeFileSync(join(attachmentDir, '한글 파일.bin'), fileBytes);
   let raw = '';
+  let declaredSize = 0;
   const recipients: string[] = [];
   // Loopback-only test fixture. Production always requires verified TLS at NAVER.
   const smtp = createServer(socket => {
@@ -167,8 +168,8 @@ test('actual SMTP exchange preserves Korean/reply headers, hides Bcc and reports
         if (inData) {
           if (line === '.') { inData = false; socket.write('250 queued\r\n'); }
           else raw += line.replace(/^\.\./, '.') + '\r\n';
-        } else if (/^EHLO/.test(line)) socket.write('250-localhost\r\n250 8BITMIME\r\n');
-        else if (/^MAIL FROM:/.test(line)) socket.write('250 ok\r\n');
+        } else if (/^EHLO/.test(line)) socket.write('250-localhost\r\n250-SIZE 39845888\r\n250 8BITMIME\r\n');
+        else if (/^MAIL FROM:/.test(line)) { declaredSize = Number(line.match(/SIZE=(\d+)/)?.[1]); socket.write('250 ok\r\n'); }
         else if (/^RCPT TO:/.test(line)) {
           recipients.push(line);
           socket.write(line.includes('hidden@example.com') ? '550 rejected for fixture\r\n' : '250 ok\r\n');
@@ -187,6 +188,7 @@ test('actual SMTP exchange preserves Korean/reply headers, hides Bcc and reports
   assert.equal(result.status, 'partially_accepted'); assert.ok(raw);
   assert.deepEqual(result.rejected, ['hidden@example.com']); assert.equal(result.accepted.length, 2); assert.equal(recipients.length, 3);
   const parsed = await simpleParser(raw);
+  assert.equal(declaredSize, Buffer.byteLength(raw));
   assert.equal(parsed.html, html); assert.match(raw, /multipart\/alternative/);
   assert.match(raw, /multipart\/mixed/); assert.equal(parsed.attachments[0].filename, '한글 파일.bin'); assert.deepEqual(parsed.attachments[0].content, fileBytes);
   assert.equal(parsed.subject, '한글 제목'); assert.match(parsed.text ?? '', /안녕하세요/);
