@@ -20,4 +20,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+      - run: npm run build:plugin -- .local/plugins/naver-mail-mcp
+      - run: npm run test:plugin -- .local/plugins/naver-mail-mcp
       - run: npm pack --dry-run

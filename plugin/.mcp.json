@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "naver-mail": {
+      "command": "node",
+      "args": ["scripts/start.mjs"],
+      "cwd": ".",
+      "env_vars": ["NAVER_ENV_FILE", "NAVER_EMAIL", "NAVER_APP_PASSWORD", "NAVER_ENABLE_SEND", "NAVER_SENDER_NAME", "NAVER_ATTACHMENT_DIR"],
+      "startup_timeout_sec": 20,
+      "tool_timeout_sec": 60
+    }
+  }
+}

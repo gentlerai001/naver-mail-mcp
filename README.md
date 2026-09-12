@@ -30,6 +30,47 @@ Codex / Claude Desktop
 조회는 읽음 상태를 바꾸지 않습니다. 발신 주소는 설정한 네이버 계정으로 고정됩니다.
 별도 AI API 키는 필요하지 않습니다. 연결한 AI 앱의 이용 조건은 별개입니다.
 
+## Codex 플러그인으로 설치
+
+기존 MCP 설정 대신 Codex의 개인 플러그인 목록에서 설치할 수 있습니다.
+아래 계정 준비 과정으로 `.env`를 설정한 다음 프로젝트 폴더에서 실행하세요.
+
+```sh
+npm ci
+npm run build:plugin
+npm run configure:plugin -- /absolute/path/to/naver-mail-mcp/.env
+npm run register:plugin
+codex plugin add naver-mail-mcp@personal
+npm run test:plugin
+```
+
+Windows의 `.env` 경로 예시는 `C:/projects/naver-mail-mcp/.env`입니다.
+기존 개인 마켓플레이스의 이름이 `personal`과 다르면 등록 스크립트가 출력한 설치 명령을 사용하세요.
+앱을 새로고침하고 **새 대화**에서 NAVER Mail을 선택하세요.
+기존 수동 MCP 연결도 켜져 있다면 중복 도구를 피하도록 앱 설정에서 하나만 사용하세요.
+
+- 플러그인 원본: `~/plugins/naver-mail-mcp`
+- 개인 마켓플레이스: `~/.agents/plugins/marketplace.json`
+- 개인 설정: `~/.naver-mail-mcp/config.json` (`.env`의 경로만 저장)
+- 빌드 결과는 실행 의존성을 포함합니다. 실행 시 npm 다운로드·설치를 하지 않습니다.
+- 테스트는 가짜 계정으로 7개 도구와 HTML 미리보기를 검증하며 실제 메일을 보내지 않습니다.
+
+Windows에서는 `~`가 사용자 프로필 폴더입니다. 다른 앱의 내장 터미널에서
+`HOME`이나 `CODEX_HOME`이 별도로 설정되어 있다면 독립 PowerShell에서 설치하세요.
+이 프로젝트의 빌드·등록 위치와 Codex가 사용하는 홈 폴더가 같아야 합니다.
+
+배포할 때는 **빌드된 플러그인 폴더**를 사용하세요. `plugin/`은 메타데이터와 시작 스크립트의
+원본이며 실행 서버는 `build:plugin`이 추가합니다. 계정 설정과 첨부파일은 패키지에 넣지 않습니다.
+사용자별로 네이버 계정 설정이 필요합니다. 플러그인 소스 변경 후에는 다시 빌드하고,
+Codex Plugin Creator의 캐시 갱신·재설치 절차를 사용하세요.
+
+개인 마켓플레이스 등록과 GitHub 소스 공개는 공식 공개 디렉터리 등재와 별개입니다.
+공식 공개 MCP 제출은 현재 HTTPS 서버를 요구합니다.
+[Codex 플러그인 패키징·배포 안내](https://developers.openai.com/plugins/build/plugins)
+
+Claude Desktop은 아래의 기존 MCP 설정으로 연결할 수 있습니다. 이 Codex 패키지를
+Claude Desktop 확장 설치 파일로 사용할 수는 없습니다.
+
 ## 1. 네이버 계정 준비
 
 1. PC 네이버 메일에서 **환경설정 → POP3/IMAP 설정 → IMAP/SMTP 설정 → 사용함**을 선택합니다.

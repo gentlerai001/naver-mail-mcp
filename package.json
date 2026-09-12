@@ -9,6 +9,10 @@
   "files": ["dist", "README.md", "LICENSE", "examples", ".env.example"],
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "build:plugin": "npm run build && node scripts/build-plugin.mjs",
+    "configure:plugin": "node scripts/configure-plugin.mjs",
+    "register:plugin": "node scripts/register-plugin.mjs",
+    "test:plugin": "node scripts/test-plugin.mjs",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "test": "npm run build && tsx --test test/*.test.ts",
