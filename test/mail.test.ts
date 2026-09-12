@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createServer } from 'node:net';
+import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
 import { ImapFlow } from 'imapflow';
 import nodemailer, { type Transporter } from 'nodemailer';
 import { simpleParser } from 'mailparser';
@@ -147,6 +150,10 @@ test('uncertain failure is not retried or exposed with provider details', async 
 });
 
 test('actual SMTP exchange preserves Korean/reply headers, hides Bcc and reports partial rejection', async t => {
+  const attachmentDir = mkdtempSync(join(tmpdir(), 'naver-smtp-attachments-'));
+  t.after(() => { assert.equal(dirname(resolve(attachmentDir)), resolve(tmpdir())); rmSync(attachmentDir, { recursive: true, force: true }); });
+  const fileBytes = Buffer.from([0, 1, 2, 127, 128, 255]);
+  writeFileSync(join(attachmentDir, '한글 파일.bin'), fileBytes);
   let raw = '';
   const recipients: string[] = [];
   // Loopback-only test fixture. Production always requires verified TLS at NAVER.
@@ -174,13 +181,14 @@ test('actual SMTP exchange preserves Korean/reply headers, hides Bcc and reports
   await new Promise<void>(resolve => smtp.listen(0, '127.0.0.1', resolve));
   t.after(() => new Promise<void>((resolve, reject) => smtp.close(error => error ? reject(error) : resolve())));
   const address = smtp.address(); assert.ok(address && typeof address !== 'string');
-  const service = new NaverMail(config, undefined, () => nodemailer.createTransport({ host: '127.0.0.1', port: address.port, secure: false, ignoreTLS: true }));
+  const service = new NaverMail({ ...config, attachmentDir }, undefined, () => nodemailer.createTransport({ host: '127.0.0.1', port: address.port, secure: false, ignoreTLS: true, disableFileAccess: true, disableUrlAccess: true }));
   const html = '<html lang="ko"><body><h1 style="color:#03c75a">한글 HTML</h1><p>안녕하세요.</p></body></html>';
-  const result = await service.sendEmail(input({ html, cc: ['copy@example.com'], bcc: ['hidden@example.com'], in_reply_to: '<original@example.com>' })) as { status: string; accepted: string[]; rejected: string[] };
+  const result = await service.sendEmail(input({ html, attachments: [{ path: '한글 파일.bin' }], cc: ['copy@example.com'], bcc: ['hidden@example.com'], in_reply_to: '<original@example.com>' })) as { status: string; accepted: string[]; rejected: string[] };
   assert.equal(result.status, 'partially_accepted'); assert.ok(raw);
   assert.deepEqual(result.rejected, ['hidden@example.com']); assert.equal(result.accepted.length, 2); assert.equal(recipients.length, 3);
   const parsed = await simpleParser(raw);
   assert.equal(parsed.html, html); assert.match(raw, /multipart\/alternative/);
+  assert.match(raw, /multipart\/mixed/); assert.equal(parsed.attachments[0].filename, '한글 파일.bin'); assert.deepEqual(parsed.attachments[0].content, fileBytes);
   assert.equal(parsed.subject, '한글 제목'); assert.match(parsed.text ?? '', /안녕하세요/);
   assert.equal(parsed.from?.value[0].address, config.email); assert.equal(parsed.inReplyTo, '<original@example.com>');
   assert.equal(parsed.bcc, undefined); // Bcc recipients must not leak into delivered headers.

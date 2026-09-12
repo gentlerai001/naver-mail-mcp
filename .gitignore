@@ -12,3 +12,4 @@ coverage/
 claude_desktop_config.json
 config.toml
 .local/
+attachments/

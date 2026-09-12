@@ -1,12 +1,15 @@
 import { readFileSync } from 'node:fs';
 import { parse } from 'dotenv';
 import { z } from 'zod';
+import { dirname, isAbsolute, join, resolve } from 'node:path';
+import { homedir } from 'node:os';
 
 const configSchema = z.object({
   NAVER_EMAIL: z.email().refine(value => /^[^@]+@naver\.com$/i.test(value)),
   NAVER_APP_PASSWORD: z.string().min(1).refine(value => !/\s/.test(value) && value !== 'replace-with-application-password'),
   NAVER_SENDER_NAME: z.string().max(100).regex(/^[^\r\n\x00]*$/).default(''),
   NAVER_ENABLE_SEND: z.enum(['true', 'false']).default('true'),
+  NAVER_ATTACHMENT_DIR: z.string().refine(value => value === '' || isAbsolute(value), 'Use an absolute directory path').optional(),
 });
 
 export interface Config {
@@ -14,6 +17,7 @@ export interface Config {
   password: string;
   senderName: string;
   enableSend: boolean;
+  attachmentDir?: string;
 }
 
 // No implicit cwd-based .env lookup: hosts can launch from arbitrary directories.
@@ -23,7 +27,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     try { values = parse(readFileSync(env.NAVER_ENV_FILE)); }
     catch { throw new Error('Cannot read NAVER_ENV_FILE. Check the absolute path and file permissions.'); }
   }
-  for (const key of ['NAVER_EMAIL', 'NAVER_APP_PASSWORD', 'NAVER_SENDER_NAME', 'NAVER_ENABLE_SEND']) {
+  for (const key of ['NAVER_EMAIL', 'NAVER_APP_PASSWORD', 'NAVER_SENDER_NAME', 'NAVER_ENABLE_SEND', 'NAVER_ATTACHMENT_DIR']) {
     if (env[key] !== undefined) values[key] = env[key];
   }
   const result = configSchema.safeParse(values);
@@ -33,5 +37,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     throw new Error(`Missing or invalid configuration: ${fields.join(', ')}. See .env.example; use a NAVER application password.`);
   }
   const data = result.data;
-  return { email: data.NAVER_EMAIL, password: data.NAVER_APP_PASSWORD, senderName: data.NAVER_SENDER_NAME, enableSend: data.NAVER_ENABLE_SEND === 'true' };
+  return {
+    email: data.NAVER_EMAIL, password: data.NAVER_APP_PASSWORD, senderName: data.NAVER_SENDER_NAME,
+    enableSend: data.NAVER_ENABLE_SEND === 'true',
+    attachmentDir: data.NAVER_ATTACHMENT_DIR || (env.NAVER_ENV_FILE
+      ? join(dirname(resolve(env.NAVER_ENV_FILE)), 'attachments')
+      : join(homedir(), '.naver-mail-mcp', 'attachments')),
+  };
 }

@@ -2,9 +2,12 @@ import { createHash, randomUUID } from 'node:crypto';
 import { ImapFlow, type FetchMessageObject, type SearchObject } from 'imapflow';
 import { simpleParser } from 'mailparser';
 import nodemailer, { type Transporter } from 'nodemailer';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+import { AttachmentStore, digest, MAX_ATTACHMENT_MESSAGE_BYTES, MAX_TOTAL_ATTACHMENT_BYTES } from './attachments.js';
 import type { Config } from './config.js';
 import { MailError } from './errors.js';
-import type { ReadInput, SearchInput, SendInput } from './schemas.js';
+import type { AttachmentMessageInput, DownloadInput, ReadInput, SearchInput, SendInput } from './schemas.js';
 
 export const MAX_MESSAGE_BYTES = 10 * 1024 * 1024;
 export interface MailBackend {
@@ -13,6 +16,12 @@ export interface MailBackend {
   getEmail(input: ReadInput): Promise<unknown>;
   sendEmail(input: SendInput): Promise<unknown>;
   verifyConnection(): Promise<unknown>;
+  listAttachments(input: AttachmentMessageInput): Promise<unknown>;
+  downloadAttachment(input: DownloadInput): Promise<unknown>;
+}
+
+function attachmentMetadata(file: Awaited<ReturnType<typeof simpleParser>>['attachments'][number], index: number) {
+  return { attachment_index: index, filename: file.filename ?? null, content_type: file.contentType, size: file.size, sha256: digest(file.content) };
 }
 
 export function imapOptions(config: Config) {
@@ -61,6 +70,10 @@ export class NaverMail implements MailBackend {
   private activeReads = 0;
   // Retain every attempted send for the process lifetime, including uncertain failures.
   private sends = new Map<string, { hash: string; result: Promise<unknown> }>();
+
+  private attachmentStore() {
+    return new AttachmentStore(this.config.attachmentDir ?? join(homedir(), '.naver-mail-mcp', 'attachments'));
+  }
 
   constructor(
     private readonly config: Config,
@@ -152,7 +165,7 @@ export class NaverMail implements MailBackend {
           subject: parsed.subject ?? '', message_id: parsed.messageId ?? null,
           references: parsed.references ?? [],
           text: body.slice(0, input.max_chars), truncated: body.length > input.max_chars, total_chars: body.length,
-          attachments: parsed.attachments.map(file => ({ filename: file.filename ?? null, content_type: file.contentType, size: file.size })),
+          attachments: parsed.attachments.map(attachmentMetadata),
         };
       } finally { lock.release(); }
     });
@@ -166,12 +179,53 @@ export class NaverMail implements MailBackend {
     finally { transport.close(); }
   }
 
+  private async attachmentMessage(input: AttachmentMessageInput) {
+    return this.withImap(async client => {
+      const lock = await client.getMailboxLock(input.mailbox, { readOnly: true });
+      try {
+        if (!client.mailbox || client.mailbox.uidValidity.toString() !== input.uid_validity) {
+          throw new MailError('STALE_UID', 'Mailbox identity changed. Search again before downloading.');
+        }
+        const meta = await client.fetchOne(input.uid, { size: true }, { uid: true });
+        if (!meta) throw new MailError('NOT_FOUND', 'Message no longer exists. Search again.');
+        if (meta.size === undefined || meta.size > MAX_ATTACHMENT_MESSAGE_BYTES) {
+          throw new MailError('MESSAGE_TOO_LARGE', 'Attachment operations support messages up to 30 MiB including MIME encoding.');
+        }
+        const message = await client.fetchOne(input.uid, { source: { maxLength: MAX_ATTACHMENT_MESSAGE_BYTES + 1 } }, { uid: true });
+        if (!message || !message.source) throw new MailError('NOT_FOUND', 'Message content is unavailable.');
+        if (message.source.length > MAX_ATTACHMENT_MESSAGE_BYTES) throw new MailError('MESSAGE_TOO_LARGE', 'Message exceeds the 30 MiB attachment limit.');
+        return await simpleParser(message.source, { skipHtmlToText: true, skipTextToHtml: true, skipImageLinks: true });
+      } finally { lock.release(); }
+    });
+  }
+
+  async listAttachments(input: AttachmentMessageInput) {
+    const parsed = await this.attachmentMessage(input);
+    return { ...input, message_id: parsed.messageId ?? null, attachments: parsed.attachments.map(attachmentMetadata) };
+  }
+
+  async downloadAttachment(input: DownloadInput) {
+    const parsed = await this.attachmentMessage(input);
+    const file = parsed.attachments[input.attachment_index];
+    if (!file) throw new MailError('ATTACHMENT_NOT_FOUND', 'Attachment index is not present. Call list_attachments first.');
+    const saved = this.attachmentStore().save(file.content, file.filename, input.save_as);
+    return { ...saved, attachment_index: input.attachment_index, original_filename: file.filename ?? null, content_type: file.contentType };
+  }
+
   async sendEmail(input: SendInput): Promise<unknown> {
     if (!this.config.enableSend) throw new MailError('SEND_DISABLED', 'Set NAVER_ENABLE_SEND=true to enable sending.');
+    let totalSize = 0;
+    const files = input.attachments.map(file => {
+      const loaded = this.attachmentStore().read(file.path, file.filename, file.expected_sha256);
+      totalSize += loaded.size;
+      if (totalSize > MAX_TOTAL_ATTACHMENT_BYTES) throw new MailError('ATTACHMENT_TOTAL_TOO_LARGE', 'Attachments must total at most 20 MiB.');
+      return loaded;
+    });
     const content = {
       from: { name: this.config.senderName, address: this.config.email },
       to: input.to, cc: input.cc, bcc: input.bcc, subject: input.subject, text: input.text, html: input.html,
       inReplyTo: input.in_reply_to, references: input.references,
+      attachments: files.map(({ content: _bytes, ...metadata }) => metadata),
     };
     if (input.dry_run) return { status: 'preview', request_id: input.request_id, message: content };
     const hash = createHash('sha256').update(JSON.stringify(content)).digest('hex');
@@ -186,7 +240,11 @@ export class NaverMail implements MailBackend {
       const transport = this.makeSmtp();
       const messageId = `<${randomUUID()}@naver.com>`;
       try {
-        const info = await transport.sendMail({ ...content, messageId, disableFileAccess: true, disableUrlAccess: true });
+        const info = await transport.sendMail({
+          ...content, messageId,
+          attachments: files.map(file => ({ filename: file.filename, content: file.content, contentDisposition: 'attachment' })),
+          disableFileAccess: true, disableUrlAccess: true,
+        });
         return {
           status: info.rejected?.length ? 'partially_accepted' : 'accepted',
           request_id: input.request_id, message_id: info.messageId ?? messageId,

@@ -15,6 +15,8 @@ function backend(): MailBackend {
     getEmail: async () => ({ text: '한글 메일' }),
     sendEmail: async () => ({ status: 'preview' }),
     verifyConnection: async () => ({ imap: 'ok', smtp: 'ok' }),
+    listAttachments: async () => ({ attachments: [] }),
+    downloadAttachment: async () => ({ path: 'test.txt' }),
   };
 }
 
@@ -25,7 +27,14 @@ test('MCP handshake discovers tools and dispatches validated requests', async ()
   try {
     await server.connect(serverTransport); await client.connect(clientTransport);
     const tools = await client.listTools();
-    assert.equal(tools.tools.length, 5);
+    assert.equal(tools.tools.length, 7);
+    assert.equal(tools.tools.find(tool => tool.name === 'download_attachment')?.annotations?.readOnlyHint, false);
+    const attachmentList = await client.callTool({ name: 'list_attachments', arguments: { uid: 1, uid_validity: '123' } });
+    assert.match(JSON.stringify(attachmentList), /attachments/);
+    const downloaded = await client.callTool({ name: 'download_attachment', arguments: { uid: 1, uid_validity: '123', attachment_index: 0, save_as: 'test.txt' } });
+    assert.match(JSON.stringify(downloaded), /test.txt/);
+    const badDownload = await client.callTool({ name: 'download_attachment', arguments: { uid: 1, uid_validity: '123', attachment_index: 0, save_as: '../outside' } });
+    assert.equal(badDownload.isError, true);
     assert.equal(tools.tools.find(tool => tool.name === 'send_email')?.annotations?.readOnlyHint, false);
     const result = await client.callTool({ name: 'search_emails', arguments: { subject: '견적서' } });
     assert.match(JSON.stringify(result), /견적서/);
@@ -74,7 +83,7 @@ test('real stdio subprocess initializes and previews without stdout contaminatio
   const client = new Client({ name: 'stdio-test', version: '1' });
   try {
     await client.connect(transport);
-    assert.equal((await client.listTools()).tools.length, 5);
+    assert.equal((await client.listTools()).tools.length, 7);
     const result = await client.callTool({ name: 'send_email', arguments: { to: ['recipient@example.com'], subject: '한글', text: '본문', html: '<h1>한글 HTML</h1>', request_id: 'stdio-001', dry_run: true } });
     assert.notEqual(result.isError, true); assert.match(JSON.stringify(result), /preview/);
     assert.match(JSON.stringify(result), /<h1>한글 HTML<\/h1>/);

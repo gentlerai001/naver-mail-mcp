@@ -22,7 +22,9 @@ Codex / Claude Desktop
 | `list_mailboxes` | 받은메일함 등 실제 메일함 경로 조회 |
 | `search_emails` | 발신자·수신자·제목·본문·수신일·안 읽은 메일 검색, 페이지 이동 |
 | `get_email` | 한글 MIME 본문 해석, HTML을 텍스트로 변환, 첨부파일 정보 조회 |
-| `send_email` | 텍스트·HTML 발송, 참조·숨은참조, 답장 헤더, 발송 미리보기 |
+| `list_attachments` | 첨부파일 번호·이름·형식·크기·SHA-256 조회 |
+| `download_attachment` | 첨부파일을 지정한 로컬 폴더에 저장 |
+| `send_email` | 텍스트·HTML·첨부 발송, 참조·숨은참조, 답장 헤더, 발송 미리보기 |
 | `verify_connection` | 메일 발송 없이 IMAP 로그인과 SMTP 인증 확인 |
 
 조회는 읽음 상태를 바꾸지 않습니다. 발신 주소는 설정한 네이버 계정으로 고정됩니다.
@@ -80,6 +82,9 @@ NAVER_ENABLE_SEND=true
 | `NAVER_APP_PASSWORD` | 필수. 네이버 애플리케이션 비밀번호 |
 | `NAVER_SENDER_NAME` | 선택. 발신자 표시 이름 |
 | `NAVER_ENABLE_SEND` | 기본 `true`. `false`이면 발송 도구를 노출하지 않음 |
+| `NAVER_ATTACHMENT_DIR` | 선택. 첨부파일을 읽고 저장할 전용 폴더의 절대 경로 |
+
+`NAVER_ATTACHMENT_DIR`를 비워 두면 `NAVER_ENV_FILE` 옆의 `attachments/` 폴더를 사용합니다. 환경변수만 사용하는 경우에는 `~/.naver-mail-mcp/attachments`입니다. 폴더는 첫 파일 작업 때 자동 생성됩니다. 발송할 파일을 해당 폴더로 복사해 두세요. 현재 작업 폴더에 따라 첨부 경로가 바뀌지 않습니다.
 
 ## 3. Codex 연결
 
@@ -190,6 +195,62 @@ Claude Desktop을 완전히 종료한 뒤 다시 실행합니다. 위 설정은 
 
 HTML 메일은 필수 `text`에 텍스트 대체 본문을, 선택 `html`에 HTML 문자열을 넣습니다. 두 버전을 `multipart/alternative` 형식으로 전송합니다. `html`은 최대 200,000자이며 파일 경로 객체나 URL 객체는 받지 않습니다. 인라인 CSS와 이메일용 표 레이아웃을 권장합니다. 외부 이미지 없는 디자인 예시는 [`examples/first-signal.html`](examples/first-signal.html)에 있습니다. 서버는 HTML을 그대로 전달하며 수신 메일 앱이 표시 방식을 결정합니다. HTML 안의 원격 이미지 URL은 수신 앱에서 로드될 수 있습니다.
 
+### 첨부파일 받기
+
+“이 메일의 견적서 PDF를 내려받아 줘”라고 요청할 수 있습니다. `get_email` 또는 `list_attachments`에서 반환하는 `attachment_index`를 사용합니다. 번호는 0부터 시작하고, 같은 메일의 MIME 첨부 순서를 따릅니다.
+
+`list_attachments` 입력:
+
+```json
+{ "mailbox": "INBOX", "uid": 123, "uid_validity": "456" }
+```
+
+`download_attachment` 입력:
+
+```json
+{
+  "mailbox": "INBOX",
+  "uid": 123,
+  "uid_validity": "456",
+  "attachment_index": 0,
+  "save_as": "받은-견적서.pdf"
+}
+```
+
+`save_as`는 폴더를 포함하지 않는 파일명입니다. 생략하면 원본 이름을 정리하고 임의 접두사를 붙여 안전한 이름을 생성합니다. 기존 파일은 덮어쓰지 않으며, 결과에는 상대 경로 `path`, 절대 경로 `absolute_path`, 크기와 `sha256`이 포함됩니다. 파일 내용은 도구 응답에 넣지 않습니다. 메일의 읽음 상태도 바꾸지 않습니다.
+
+첨부 작업은 **MIME 인코딩을 포함한 메일 원문 전체를 메모리에서 해석**하므로 원문 30 MiB까지만 지원합니다. `get_email`의 본문 읽기 한도 10 MiB를 넘는 메일은 `list_attachments`를 별도로 사용하세요. 첨부파일 한 개의 다운로드 한도는 디코딩 후 10 MiB입니다. 본문 인라인 이미지도 MIME 첨부로 포함될 수 있습니다. 파일을 실행하거나 압축을 자동 해제하지 않습니다.
+
+### 첨부파일 보내기
+
+“첨부 폴더의 견적서.pdf를 넣어서 메일 보내 줘”라고 요청할 수 있습니다. 파일은 지정한 폴더 안에 있어야 합니다.
+
+```json
+{
+  "to": ["recipient@example.com"],
+  "subject": "견적서 전달",
+  "text": "요청하신 견적서를 첨부합니다.",
+  "html": "<p>요청하신 <strong>견적서</strong>를 첨부합니다.</p>",
+  "attachments": [
+    { "path": "견적서.pdf", "filename": "견적서-최종.pdf" }
+  ],
+  "dry_run": true,
+  "request_id": "quote-attachment-001"
+}
+```
+
+`path`는 첨부 폴더 기준 상대 경로이며 하위 폴더도 사용할 수 있습니다. `filename`은 수신자에게 보일 파일명으로 생략할 수 있습니다. 미리보기는 파일을 읽어 이름·크기·SHA-256을 반환하지만 발송하지 않습니다. 실제 전송 때 첨부 항목의 `expected_sha256`에 미리보기 해시를 넣으면 파일 변경 시 전송을 막습니다.
+
+```json
+{
+  "path": "견적서.pdf",
+  "filename": "견적서-최종.pdf",
+  "expected_sha256": "미리보기에서 반환한 64자리 소문자 SHA-256 값"
+}
+```
+
+위 `expected_sha256` 예시 문구는 실제 해시로 바꿔야 합니다. 미리보기 후 `dry_run: false`로 호출하면 전송합니다. 첨부가 있으면 `multipart/mixed`로 구성하고 HTML·텍스트 대체 본문도 함께 유지합니다. 전송 시 파일 내용을 메모리에 읽어 고정한 뒤 Nodemailer에 Buffer로 전달합니다.
+
 ### 발송 결과와 재시도
 
 - `accepted`: SMTP 서버가 메시지를 접수했습니다. 최종 수신함 도착을 보장하지 않습니다.
@@ -197,12 +258,14 @@ HTML 메일은 필수 `text`에 텍스트 대체 본문을, 선택 `html`에 HTM
 - `SEND_FAILED_OR_UNKNOWN`: 실패했거나 접수 여부가 불확실합니다. 자동 재발송하지 않습니다.
 
 같은 `request_id`와 같은 내용을 다시 호출하면 기존 결과를 반환합니다. 같은 ID에 다른 내용을 사용하면 거절합니다. 실패한 요청도 재시도하지 않도록 기억합니다.
+첨부파일 내용 해시도 중복 판정에 포함하므로 파일이 바뀌면 같은 ID로 새 내용을 발송하지 않습니다. 재호출 시에는 첨부파일이 같은 경로에 읽을 수 있는 상태로 남아 있어야 합니다.
 이 기록은 **현재 서버 프로세스 메모리에만** 있으며 재시작하거나 Codex와 Claude Desktop이 별도 프로세스를 실행하면 공유되지 않습니다. 프로세스당 최대 1,000개 발송 시도를 저장하며 자동 삭제하지 않습니다. SMTP와 로컬 상태 사이에 원자적 처리는 없으므로 정확히 한 번 전달을 보장하지 않습니다.
 
 ## 범위와 제한
 
 - 개인 `@naver.com` 계정 한 개 / 프로세스. NAVER WORKS, `@me.com` 별칭, OAuth 로그인은 지원하지 않습니다.
-- 수신 첨부파일은 이름·타입·크기만 제공하며 다운로드·첨부 발송은 아직 지원하지 않습니다.
+- 첨부 발송은 최대 10개, 파일당 10 MiB, 원본 파일 합계 20 MiB입니다. MIME 인코딩으로 실제 메일 크기는 커집니다. 이 한도는 프로젝트의 한도이며 네이버 서버가 별도로 발송을 제한할 수 있습니다.
+- 첨부 목록/다운로드는 원문 30 MiB, 다운로드 파일당 10 MiB까지입니다. 웹링크 방식의 네이버 대용량 첨부는 자동 다운로드하지 않습니다. CID 이미지 삽입은 아직 지원하지 않습니다.
 - 본문 읽기는 첨부파일을 포함한 원문 최대 10 MiB. 기본 20,000자, 최대 100,000자를 반환하며 잘렸는지 표시합니다.
 - 검색은 페이지당 최대 50개, 발송은 참조·숨은참조를 포함해 최대 20개 주소입니다.
 - 삭제, 이동, 읽음 변경, 예약 발송, 백그라운드 수신 감시는 제공하지 않습니다.
@@ -213,11 +276,13 @@ HTML 메일은 필수 `text`에 텍스트 대체 본문을, 선택 `html`에 HTM
 
 서버는 로컬에서 실행되며 HTTP 포트를 열지 않습니다. 메일 접속 정보는 네이버 인증에만 사용하고 별도 수집 서버나 분석 도구로 전송하지 않습니다. 단, **조회된 메일 내용은 연결한 AI 앱에 도구 결과로 전달됩니다.** `.env`는 평문 파일이므로 OS 권한으로 접근을 제한하세요.
 
-IMAP/SMTP에는 인증서 검증을 켠 TLS를 사용합니다. SMTP는 STARTTLS가 불가능하면 실패합니다. 본문 변환 중 외부 이미지나 URL을 가져오지 않으며 파일 경로·URL 첨부 입력을 받지 않습니다. 서버 로그와 도구 오류에서 원본 인증 오류/프로토콜 대화를 출력하지 않습니다.
+IMAP/SMTP에는 인증서 검증을 켠 TLS를 사용합니다. SMTP는 STARTTLS가 불가능하면 실패합니다. 본문 변환 중 외부 이미지나 URL을 가져오지 않습니다. 첨부는 지정한 폴더의 상대 경로만 받아 읽고, Nodemailer 자체 파일·URL 접근은 계속 비활성화합니다. 서버 로그와 도구 오류에서 원본 인증 오류/프로토콜 대화를 출력하지 않습니다.
+
+첨부 경로의 `..`, 절대 경로, URL, 숨김 파일, Windows 장치 이름·대체 데이터 스트림, 심볼릭 링크·정션·하드 링크를 거절합니다. 다운로드 파일을 덮어쓰지 않습니다. 전용 첨부 폴더는 신뢰하는 로컬 사용자가 관리해야 하며, OS 샌드박스를 대체하지 않습니다. 로컬의 다른 프로세스가 동시에 디렉터리를 악의적으로 변경하는 환경을 방어하는 용도는 아닙니다. 비밀번호 폴더나 홈 디렉터리 전체를 첨부 폴더로 지정하지 마세요.
 
 받은 메일의 본문·제목·발신자 표시는 신뢰할 수 없는 데이터입니다. 서버 도구 설명에 메일 속 지시를 따르지 않도록 안내하지만, 그것만으로 프롬프트 인젝션을 완전히 차단하지는 못합니다. 발송에는 AI 앱의 도구 승인 설정이 적용되며 이 서버가 별도의 사람 확인 UI를 강제하지는 않습니다.
 
-`.gitignore`는 `.env`와 개인 앱 설정 파일을 제외하고, npm 패키지는 `files` 허용 목록만 포함합니다.
+`.gitignore`는 `.env`, 기본 `attachments/` 폴더와 개인 앱 설정 파일을 제외하고, npm 패키지는 `files` 허용 목록만 포함합니다. 별도 첨부 폴더를 다른 Git 저장소 안에 지정했다면 해당 저장소에서도 제외하세요.
 
 ## 개발과 검증
 
@@ -249,7 +314,10 @@ npm.cmd start
 | 인증 실패 | IMAP 사용함, 2단계 인증, 애플리케이션 비밀번호 |
 | 앱에 도구가 없음 | 빌드 완료, 절대 경로, Node 경로, 앱 완전 재시작 |
 | `STALE_UID` | 메일함 식별자가 바뀜. 다시 검색한 결과로 조회 |
-| `MESSAGE_TOO_LARGE` | 10 MiB를 넘는 원문은 네이버 웹메일에서 확인 |
+| `MESSAGE_TOO_LARGE` | 본문 조회 원문 10 MiB, 첨부 작업 원문 30 MiB 한도 확인 |
+| `ATTACHMENT_READ_FAILED` | 첨부 폴더 안에 해당 상대 경로의 파일이 있는지 확인 |
+| `ATTACHMENT_CHANGED` | 미리보기 이후 파일이 바뀜. 다시 미리보기한 뒤 해시 갱신 |
+| `ATTACHMENT_EXISTS` | 다른 `save_as` 이름을 사용하거나 이름 자동 생성 |
 | SMTP 오류 또는 부분 성공 | 기존 접수 여부 확인 후 필요한 수신자만 새 요청으로 발송 |
 
 ## GitHub 공개
@@ -266,6 +334,6 @@ npm pack --dry-run
 
 ## English
 
-Local stdio MCP server for personal NAVER Mail accounts. Provides mailbox listing, filtered search with UID pagination, decoded message reading, text/HTML SMTP sending (cc/bcc/reply headers), dry-run previews, and authentication checks. Requires Node.js 22+, NAVER IMAP/SMTP enabled, two-step verification, and an application password.
+Local stdio MCP server for personal NAVER Mail accounts. Provides mailbox listing, filtered search with UID pagination, decoded message reading, attachment listing/downloads, text/HTML/attachment SMTP sending (cc/bcc/reply headers), dry-run previews, and authentication checks. Requires Node.js 22+, NAVER IMAP/SMTP enabled, two-step verification, and an application password. Attachments stay inside NAVER_ATTACHMENT_DIR (default: attachments/ beside the env file). Up to 10 attachments, 10 MiB per file and 20 MiB per send. Attachment downloads parse raw messages up to 30 MiB and never overwrite existing files.
 
 Run `npm ci && npm run build`, copy `.env.example` to `.env`, fill in your account, and use the client configurations in `examples/` with absolute paths. Launch `node /absolute/path/dist/index.js` with `NAVER_ENV_FILE=/absolute/path/.env`. Credentials remain local; retrieved mail is returned to your AI client. Send deduplication is in-memory and process-local. This unofficial project is not affiliated with NAVER, OpenAI, or Anthropic. MIT licensed.
