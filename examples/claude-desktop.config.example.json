@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "naver-mail": {
+      "command": "node",
+      "args": ["C:/projects/naver-mail-mcp/dist/index.js"],
+      "env": {
+        "NAVER_ENV_FILE": "C:/projects/naver-mail-mcp/.env"
+      }
+    }
+  }
+}
