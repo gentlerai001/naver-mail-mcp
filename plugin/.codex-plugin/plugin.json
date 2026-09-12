@@ -4,6 +4,8 @@
   "description": "Read, search and send NAVER Mail with HTML and attachments through a local MCP server.",
   "author": { "name": "NAVER Mail MCP contributors" },
   "license": "MIT",
+  "repository": "https://github.com/gentlerai001/naver-mail-mcp",
+  "homepage": "https://github.com/gentlerai001/naver-mail-mcp#readme",
   "keywords": ["naver", "email", "imap", "smtp", "attachments"],
   "mcpServers": "./.mcp.json",
   "interface": {

@@ -85,6 +85,8 @@ Claude Desktop 확장 설치 파일로 사용할 수는 없습니다.
 Node.js **22 이상**과 Git이 필요합니다. 저장소를 클론하거나 ZIP을 풀고 프로젝트 폴더에서 실행하세요.
 
 ```sh
+git clone https://github.com/gentlerai001/naver-mail-mcp.git
+cd naver-mail-mcp
 npm ci
 npm run build
 ```
@@ -377,7 +379,7 @@ npm.cmd start
 
 ## GitHub 공개
 
-이 프로젝트는 MIT 라이선스입니다. 공개 전 실제 계정으로 연동을 확인하고 아래 명령으로 포함 파일을 검토하세요.
+이 프로젝트는 MIT 라이선스입니다. 수정한 버전을 공개할 때는 아래 명령으로 포함 파일을 검토하세요.
 
 ```sh
 git status --short
