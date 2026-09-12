@@ -134,6 +134,7 @@ test('concurrent retries send once, return same result and reject changed conten
   const results = await Promise.all([service.sendEmail(input()), service.sendEmail(input())]);
   assert.equal(sends, 1); assert.deepEqual(results[0], results[1]);
   await assert.rejects(service.sendEmail(input({ text: '다른 본문' })), /different content/);
+  await assert.rejects(service.sendEmail(input({ html: '<p>Changed HTML</p>' })), /different content/);
 });
 
 test('uncertain failure is not retried or exposed with provider details', async () => {
@@ -174,10 +175,12 @@ test('actual SMTP exchange preserves Korean/reply headers, hides Bcc and reports
   t.after(() => new Promise<void>((resolve, reject) => smtp.close(error => error ? reject(error) : resolve())));
   const address = smtp.address(); assert.ok(address && typeof address !== 'string');
   const service = new NaverMail(config, undefined, () => nodemailer.createTransport({ host: '127.0.0.1', port: address.port, secure: false, ignoreTLS: true }));
-  const result = await service.sendEmail(input({ cc: ['copy@example.com'], bcc: ['hidden@example.com'], in_reply_to: '<original@example.com>' })) as { status: string; accepted: string[]; rejected: string[] };
+  const html = '<html lang="ko"><body><h1 style="color:#03c75a">한글 HTML</h1><p>안녕하세요.</p></body></html>';
+  const result = await service.sendEmail(input({ html, cc: ['copy@example.com'], bcc: ['hidden@example.com'], in_reply_to: '<original@example.com>' })) as { status: string; accepted: string[]; rejected: string[] };
   assert.equal(result.status, 'partially_accepted'); assert.ok(raw);
   assert.deepEqual(result.rejected, ['hidden@example.com']); assert.equal(result.accepted.length, 2); assert.equal(recipients.length, 3);
   const parsed = await simpleParser(raw);
+  assert.equal(parsed.html, html); assert.match(raw, /multipart\/alternative/);
   assert.equal(parsed.subject, '한글 제목'); assert.match(parsed.text ?? '', /안녕하세요/);
   assert.equal(parsed.from?.value[0].address, config.email); assert.equal(parsed.inReplyTo, '<original@example.com>');
   assert.equal(parsed.bcc, undefined); // Bcc recipients must not leak into delivered headers.

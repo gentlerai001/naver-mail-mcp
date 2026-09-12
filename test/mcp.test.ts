@@ -75,8 +75,9 @@ test('real stdio subprocess initializes and previews without stdout contaminatio
   try {
     await client.connect(transport);
     assert.equal((await client.listTools()).tools.length, 5);
-    const result = await client.callTool({ name: 'send_email', arguments: { to: ['recipient@example.com'], subject: '한글', text: '본문', request_id: 'stdio-001', dry_run: true } });
+    const result = await client.callTool({ name: 'send_email', arguments: { to: ['recipient@example.com'], subject: '한글', text: '본문', html: '<h1>한글 HTML</h1>', request_id: 'stdio-001', dry_run: true } });
     assert.notEqual(result.isError, true); assert.match(JSON.stringify(result), /preview/);
+    assert.match(JSON.stringify(result), /<h1>한글 HTML<\/h1>/);
     assert.equal(stderr, '');
   } finally { await client.close(); }
 });

@@ -170,7 +170,7 @@ export class NaverMail implements MailBackend {
     if (!this.config.enableSend) throw new MailError('SEND_DISABLED', 'Set NAVER_ENABLE_SEND=true to enable sending.');
     const content = {
       from: { name: this.config.senderName, address: this.config.email },
-      to: input.to, cc: input.cc, bcc: input.bcc, subject: input.subject, text: input.text,
+      to: input.to, cc: input.cc, bcc: input.bcc, subject: input.subject, text: input.text, html: input.html,
       inReplyTo: input.in_reply_to, references: input.references,
     };
     if (input.dry_run) return { status: 'preview', request_id: input.request_id, message: content };

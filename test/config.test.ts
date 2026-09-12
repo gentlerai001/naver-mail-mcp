@@ -30,6 +30,8 @@ test('input rejects header injection, bad dates, reversed dates, UID misuse and 
   const send = { to: ['recipient@example.com'], subject: '제목', text: '본문', request_id: 'test-001' };
   assert.equal(sendSchema.safeParse({ ...send, subject: 'hello\r\nBcc: leak@example.com' }).success, false);
   assert.equal(sendSchema.safeParse({ ...send, cc: Array(20).fill('copy@example.com') }).success, false);
+  assert.equal(sendSchema.safeParse({ ...send, html: { path: '/private/file' } }).success, false);
+  assert.equal(sendSchema.safeParse({ ...send, html: 'a'.repeat(200001) }).success, false);
   assert.equal(searchSchema.safeParse({ since: '2026-02-30' }).success, false);
   assert.equal(searchSchema.safeParse({ since: '2026-10-01', before: '2026-09-01' }).success, false);
   assert.equal(readSchema.safeParse({ uid: 0, uid_validity: '123' }).success, false);

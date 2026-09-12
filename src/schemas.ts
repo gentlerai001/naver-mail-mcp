@@ -31,6 +31,7 @@ export const sendSchema = z.object({
   bcc: z.array(email).max(20).default([]),
   subject: header.min(1).max(500),
   text: z.string().min(1).max(100000),
+  html: z.string().min(1).max(200000).optional().describe('Optional HTML body, with text as the plain-text fallback. Use email-compatible HTML and inline CSS. HTML is passed through; remote images may be loaded by the recipient mail client.'),
   in_reply_to: header.max(998).regex(/^<[^<>\s]+>$/).optional().describe('Original Message-ID when replying.'),
   references: z.array(header.max(998).regex(/^<[^<>\s]+>$/)).max(20).optional(),
   dry_run: z.boolean().default(false).describe('If true, return the exact message preview without contacting SMTP.'),

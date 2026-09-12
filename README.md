@@ -4,7 +4,7 @@
 TypeScript / Node.js 기반이며 네이버의 IMAP·SMTP와 MCP `stdio`를 사용합니다.
 
 > 개인이 만든 비공식 프로젝트입니다. NAVER, OpenAI, Anthropic과 제휴 관계가 없습니다.
-> 초기 버전: 자동 테스트는 통과했으며, 실제 네이버 계정 연동과 앱 UI에서의 확인은 별도로 필요합니다.
+> 초기 버전: 자동 테스트와 개인 네이버 계정 한 개에서 IMAP·SMTP 인증, MCP를 통한 HTML 발송 및 받은메일함 수신·본문 조회를 확인했습니다. Codex·Claude Desktop 앱 UI에서의 연결과 여러 메일 앱의 HTML 표시는 별도로 확인해야 합니다.
 
 ```text
 Codex / Claude Desktop
@@ -22,7 +22,7 @@ Codex / Claude Desktop
 | `list_mailboxes` | 받은메일함 등 실제 메일함 경로 조회 |
 | `search_emails` | 발신자·수신자·제목·본문·수신일·안 읽은 메일 검색, 페이지 이동 |
 | `get_email` | 한글 MIME 본문 해석, HTML을 텍스트로 변환, 첨부파일 정보 조회 |
-| `send_email` | 일반 텍스트 발송, 참조·숨은참조, 답장 헤더, 발송 미리보기 |
+| `send_email` | 텍스트·HTML 발송, 참조·숨은참조, 답장 헤더, 발송 미리보기 |
 | `verify_connection` | 메일 발송 없이 IMAP 로그인과 SMTP 인증 확인 |
 
 조회는 읽음 상태를 바꾸지 않습니다. 발신 주소는 설정한 네이버 계정으로 고정됩니다.
@@ -188,6 +188,8 @@ Claude Desktop을 완전히 종료한 뒤 다시 실행합니다. 위 설정은 
 
 답장은 원본 `message_id`를 `in_reply_to`에, 필요한 원본 Message-ID 목록을 `references`에 전달합니다. 수신자는 사용자가 지정한 주소를 사용합니다.
 
+HTML 메일은 필수 `text`에 텍스트 대체 본문을, 선택 `html`에 HTML 문자열을 넣습니다. 두 버전을 `multipart/alternative` 형식으로 전송합니다. `html`은 최대 200,000자이며 파일 경로 객체나 URL 객체는 받지 않습니다. 인라인 CSS와 이메일용 표 레이아웃을 권장합니다. 외부 이미지 없는 디자인 예시는 [`examples/first-signal.html`](examples/first-signal.html)에 있습니다. 서버는 HTML을 그대로 전달하며 수신 메일 앱이 표시 방식을 결정합니다. HTML 안의 원격 이미지 URL은 수신 앱에서 로드될 수 있습니다.
+
 ### 발송 결과와 재시도
 
 - `accepted`: SMTP 서버가 메시지를 접수했습니다. 최종 수신함 도착을 보장하지 않습니다.
@@ -200,7 +202,7 @@ Claude Desktop을 완전히 종료한 뒤 다시 실행합니다. 위 설정은 
 ## 범위와 제한
 
 - 개인 `@naver.com` 계정 한 개 / 프로세스. NAVER WORKS, `@me.com` 별칭, OAuth 로그인은 지원하지 않습니다.
-- 수신 첨부파일은 이름·타입·크기만 제공하며 다운로드·첨부 발송·HTML 발송은 아직 지원하지 않습니다.
+- 수신 첨부파일은 이름·타입·크기만 제공하며 다운로드·첨부 발송은 아직 지원하지 않습니다.
 - 본문 읽기는 첨부파일을 포함한 원문 최대 10 MiB. 기본 20,000자, 최대 100,000자를 반환하며 잘렸는지 표시합니다.
 - 검색은 페이지당 최대 50개, 발송은 참조·숨은참조를 포함해 최대 20개 주소입니다.
 - 삭제, 이동, 읽음 변경, 예약 발송, 백그라운드 수신 감시는 제공하지 않습니다.
@@ -264,6 +266,6 @@ npm pack --dry-run
 
 ## English
 
-Local stdio MCP server for personal NAVER Mail accounts. Provides mailbox listing, filtered search with UID pagination, decoded message reading, SMTP sending (cc/bcc/reply headers), dry-run previews, and authentication checks. Requires Node.js 22+, NAVER IMAP/SMTP enabled, two-step verification, and an application password.
+Local stdio MCP server for personal NAVER Mail accounts. Provides mailbox listing, filtered search with UID pagination, decoded message reading, text/HTML SMTP sending (cc/bcc/reply headers), dry-run previews, and authentication checks. Requires Node.js 22+, NAVER IMAP/SMTP enabled, two-step verification, and an application password.
 
 Run `npm ci && npm run build`, copy `.env.example` to `.env`, fill in your account, and use the client configurations in `examples/` with absolute paths. Launch `node /absolute/path/dist/index.js` with `NAVER_ENV_FILE=/absolute/path/.env`. Credentials remain local; retrieved mail is returned to your AI client. Send deduplication is in-memory and process-local. This unofficial project is not affiliated with NAVER, OpenAI, or Anthropic. MIT licensed.
