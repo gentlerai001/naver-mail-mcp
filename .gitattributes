@@ -1,2 +1,3 @@
 * text=auto eol=lf
 plugin/server/index.js -text -diff linguist-generated=true
+setup.cmd text eol=crlf
