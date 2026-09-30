@@ -20,7 +20,7 @@ transport.stderr.on('data', chunk => { stderr += chunk.toString(); });
 try {
   await client.connect(transport);
   const names = (await client.listTools()).tools.map(tool => tool.name).sort();
-  assert.deepEqual(names, ['download_attachment', 'get_email', 'list_attachments', 'list_mailboxes', 'search_emails', 'send_email', 'setup_naver_mail', 'verify_connection']);
+  assert.deepEqual(names, ['download_attachment', 'get_email', 'list_attachments', 'list_mailboxes', 'search_emails', 'send_email', 'verify_connection']);
   const preview = await client.callTool({ name: 'send_email', arguments: {
     to: ['nobody@example.com'], subject: '플러그인 테스트', text: '미리보기만 확인',
     html: '<h1>플러그인 테스트</h1>', dry_run: true, request_id: 'plugin-smoke-test',
@@ -28,5 +28,5 @@ try {
   assert.notEqual(preview.isError, true);
   assert.match(JSON.stringify(preview), /encoded_message_bytes/);
   assert.equal(stderr, '');
-  console.log('PASS: packaged plugin initializes, exposes 8 tools, and previews HTML with fixture credentials. No mail sent.');
+  console.log('PASS: packaged plugin initializes, exposes 7 tools (host-managed account, no setup tool), and previews HTML with fixture credentials. No mail sent.');
 } finally { await client.close(); }
