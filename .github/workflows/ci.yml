@@ -26,4 +26,5 @@ jobs:
         if: runner.os == 'Linux'
         run: git diff --exit-code --stat -- plugin/server/index.js
       - run: npm run test:plugin -- .local/plugins/naver-mail-mcp
+      - run: node scripts/build-mcpb.mjs
       - run: npm pack --dry-run

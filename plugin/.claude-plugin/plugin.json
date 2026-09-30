@@ -3,32 +3,27 @@
   "displayName": "NAVER Mail",
   "version": "0.1.0",
   "description": "네이버 메일 검색·읽기·HTML 발송·첨부파일을 Claude에서 사용합니다. 내 PC에서 네이버 IMAP·SMTP에 직접 연결합니다.",
-  "author": { "name": "NAVER Mail MCP contributors", "url": "https://github.com/gentlerai001/naver-mail-mcp" },
+  "author": {
+    "name": "NAVER Mail MCP contributors",
+    "url": "https://github.com/gentlerai001/naver-mail-mcp"
+  },
   "homepage": "https://github.com/gentlerai001/naver-mail-mcp#readme",
   "repository": "https://github.com/gentlerai001/naver-mail-mcp",
   "license": "MIT",
-  "keywords": ["naver", "email", "imap", "smtp", "attachments", "korean"],
+  "keywords": [
+    "naver",
+    "email",
+    "imap",
+    "smtp",
+    "attachments",
+    "korean"
+  ],
   "mcpServers": {
     "naver-mail": {
       "command": "node",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/start.mjs"],
-      "env": {
-        "NAVER_EMAIL": "${user_config.naver_email}",
-        "NAVER_APP_PASSWORD": "${user_config.naver_app_password}"
-      }
-    }
-  },
-  "userConfig": {
-    "naver_email": {
-      "type": "string",
-      "title": "네이버 메일 주소",
-      "description": "예: myid@naver.com. 비워 두고 채팅에서 \"네이버 메일 설정해 줘\"라고 말해 브라우저 창에서 입력해도 됩니다."
-    },
-    "naver_app_password": {
-      "type": "string",
-      "title": "네이버 애플리케이션 비밀번호",
-      "description": "로그인 비밀번호가 아닙니다. 네이버ID → 보안설정 → 2단계 인증 → 애플리케이션 비밀번호에서 만든 값. 안전한 저장소에 보관됩니다.",
-      "sensitive": true
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/scripts/start.mjs"
+      ]
     }
   }
 }

@@ -113414,6 +113414,7 @@ async function main() {
     currentEmail = config2.email;
   } catch {
   }
+  const hostManaged = !!(process.env.NAVER_EMAIL && process.env.NAVER_APP_PASSWORD);
   const mail = new LazyMail(env);
   const setup = async () => {
     const page2 = await startSetupPage({ envFile, currentEmail, onSaved: (config2) => {
@@ -113427,7 +113428,7 @@ async function main() {
       instructions: "A setup page opened in the user's browser on this computer. Tell the user to enter their NAVER address and application password there. If no window appeared, give them the URL to paste into a browser. Do not ask for the password in chat. Once they report success, tools work immediately without restarting."
     };
   };
-  const server = createServer(mail, enableSend, { setup });
+  const server = createServer(mail, enableSend, hostManaged ? {} : { setup });
   await server.connect(new StdioServerTransport());
 }
 main().catch(() => {

@@ -120,17 +120,32 @@ claude mcp get naver-mail
 `.codex-plugin/plugin.json` + `.codex-mcp.json`(Codex 용)과 `.claude-plugin/plugin.json`(Claude 용, MCP 설정 내장)이 함께 있고,
 `plugin/server/index.js` 는 실행 의존성을 모두 담은 단일 번들이라 사용자 PC 에서 npm 설치가 필요 없습니다.
 
-### Claude Code / Claude 데스크톱 앱
+### Claude Code / Cowork (플러그인)
 
 ```text
 /plugin marketplace add gentlerai001/naver-mail-mcp
 /plugin install naver-mail-mcp@gentler
 ```
 
-설치 시 `userConfig` 로 네이버 주소와 앱 비밀번호를 물어보며, 비밀번호는 `sensitive` 로 표시되어 안전한 저장소에 들어갑니다.
-값은 MCP 서버의 `NAVER_EMAIL`·`NAVER_APP_PASSWORD` 환경변수로 전달됩니다. 비워 두면 서버가 `~/.naver-mail-mcp/.env` 를 찾고,
-없으면 `setup_naver_mail` 브라우저 설정 창으로 안내합니다. 나중에 바꾸려면 `/plugin configure naver-mail-mcp@gentler`.
+플러그인의 MCP 서버는 `plugin/.claude-plugin/plugin.json` 에 인라인으로 선언돼 있습니다(`${CLAUDE_PLUGIN_ROOT}/scripts/start.mjs`).
+계정은 `~/.naver-mail-mcp/.env` 를 읽고, 없으면 `setup_naver_mail` 브라우저 설정 창으로 안내합니다.
+`${user_config.*}` 참조는 일부러 쓰지 않습니다. Cowork 는 기본값 없는 참조가 있는 서버를 통째로 무시하기 때문입니다.
 검증: `claude plugin validate .` 와 `claude plugin validate ./plugin`.
+
+공식 지원표상 **Claude 채팅**(claude.ai, 데스크톱 앱 채팅)은 플러그인의 로컬 MCP 서버를 실행하지 않습니다. 채팅용은 아래 확장 프로그램을 쓰세요.
+
+### Claude 데스크톱 앱 채팅 (확장 프로그램 .mcpb)
+
+`mcpb/manifest.json` 과 번들을 묶은 `.mcpb` 파일을 설정 → 확장 프로그램에 끌어다 놓으면 설치됩니다.
+설치 화면에서 `user_config` 로 주소·앱 비밀번호(sensitive)·보내는 이름·발송 허용을 입력받아 환경변수로 전달합니다.
+호스트가 계정을 환경변수로 주입하면 서버는 `setup_naver_mail` 도구를 노출하지 않습니다(설정 값이 항상 우선이라 페이지로 바꿀 수 없기 때문).
+Claude 데스크톱은 Node 런타임을 내장하므로 사용자가 Node 를 설치할 필요가 없습니다.
+
+```sh
+npm run build:mcpb        # release/naver-mail-mcp-<버전>.mcpb 생성 (mcpb validate + pack)
+```
+
+배포는 GitHub Releases 에 `.mcpb` 를 첨부합니다.
 
 ### Codex
 

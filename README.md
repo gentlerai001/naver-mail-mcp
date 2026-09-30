@@ -24,8 +24,8 @@
 
 | | 방법 A. 앱 안에서 플러그인 설치 | 방법 B. 설치 파일 실행 |
 | --- | --- | --- |
-| 대상 | Codex 앱, Claude 앱(Claude Code) | 위 앱 + 그 밖의 MCP 지원 앱 |
-| 할 일 | 주소 붙여넣기 → 설치 → 계정 입력 | ZIP 풀기 → `setup.cmd` 더블클릭 |
+| 대상 | Codex 앱, Claude 데스크톱 앱, Claude Code | 위 앱 + 그 밖의 MCP 지원 앱 |
+| 할 일 | 주소 붙여넣기(또는 파일 드래그) → 설치 → 계정 입력 | ZIP 풀기 → `setup.cmd` 더블클릭 |
 | 걸리는 시간 | 2분 | 5분 |
 
 두 방법 모두 **공통 준비물**이 먼저 필요합니다.
@@ -72,22 +72,33 @@ codex plugin marketplace add gentlerai001/naver-mail-mcp
 codex plugin add naver-mail-mcp@gentler
 ```
 
-### Claude 앱 (Claude Code)
+### Claude 데스크톱 앱 (채팅)
 
-1. 대화창에 아래를 입력합니다. 데스크톱 앱은 **Code** 탭에서, 터미널은 `claude` 안에서 입력합니다.
+Claude의 **채팅**은 플러그인 안의 로컬 서버를 실행하지 않는 정책이라, 채팅에서는 플러그인 대신 **확장 프로그램** 파일로 설치합니다. Node.js를 따로 설치할 필요도 없습니다.
+
+1. [최신 릴리스](https://github.com/gentlerai001/naver-mail-mcp/releases/latest)에서 `naver-mail-mcp-x.y.z.mcpb` 파일을 내려받습니다.
+2. Claude 데스크톱 앱에서 **설정 → 확장 프로그램**을 열고 파일을 창에 끌어다 놓습니다. (더블클릭해도 됩니다)
+3. 설치 화면에서 **네이버 메일 주소**와 **애플리케이션 비밀번호**를 입력하고 설치합니다.
+   비밀번호는 Claude의 안전한 저장소에 보관되고 채팅으로는 전송되지 않습니다.
+4. 새 대화에서 "네이버 메일 연결 상태 확인해 줘"라고 말해 보세요.
+
+계정을 바꾸려면 설정 → 확장 프로그램에서 NAVER Mail의 설정 값을 수정합니다.
+
+### Claude Code · Cowork (플러그인)
+
+Claude Code(터미널, 데스크톱 앱의 Code 탭)와 Cowork에서는 플러그인 마켓플레이스로 설치합니다.
+
+1. 대화창에 입력합니다. Cowork는 **Customize → Plugins → Add marketplace**에 위 주소를 붙여넣어도 됩니다.
    ```text
    /plugin marketplace add gentlerai001/naver-mail-mcp
    /plugin install naver-mail-mcp@gentler
    ```
-   데스크톱 앱은 **+ → Plugins → Add plugin**에서 목록의 **NAVER Mail**을 골라도 됩니다.
-2. 설치할 때 **네이버 메일 주소**와 **애플리케이션 비밀번호**를 물어봅니다. 입력하면 바로 끝입니다.
-   비밀번호는 Claude의 안전한 저장소에 보관되고 채팅으로는 전송되지 않습니다.
-3. 입력을 건너뛰었다면 대화에서 "네이버 메일 설정해 줘"라고 말하면 브라우저 설정 창이 열립니다.
+2. 새 대화에서 "네이버 메일 설정해 줘"라고 말하면 브라우저 설정 창이 열립니다. 계정을 넣고 저장하면 바로 끝입니다.
 
 ### 공통
 
 비밀번호는 내 PC에만 저장되고 채팅으로는 전송되지 않습니다.
-계정을 바꾸거나 읽기 전용으로 바꾸고 싶으면 "네이버 메일 설정해 줘"라고 말하면 설정 창이 다시 열립니다.
+플러그인으로 설치했다면 "네이버 메일 설정해 줘"라고 말할 때마다 설정 창이 다시 열려 계정을 바꿀 수 있습니다.
 
 ---
 
@@ -169,7 +180,7 @@ Windows는 `C:\Users\내이름\.naver-mail-mcp`, Mac은 `/Users/내이름/.naver
 받은 첨부파일도 같은 폴더에 저장됩니다.
 
 **지우고 싶어요**
-1. AI 앱에서 연결을 해제합니다. Codex는 플러그인 화면에서 NAVER Mail 제거(또는 `codex plugin remove naver-mail-mcp@gentler`), Claude는 `/plugin uninstall naver-mail-mcp@gentler`. 방법 B로 설치한 Claude Code는 `claude mcp remove naver-mail -s user`, Claude Desktop은 설정 → 개발자 → 설정 편집에서 `naver-mail` 항목 삭제.
+1. AI 앱에서 연결을 해제합니다. Codex는 플러그인 화면에서 NAVER Mail 제거(또는 `codex plugin remove naver-mail-mcp@gentler`), Claude 데스크톱 채팅은 설정 → 확장 프로그램에서 제거, Claude Code·Cowork는 `/plugin uninstall naver-mail-mcp@gentler`. 방법 B로 설치한 Claude Code는 `claude mcp remove naver-mail -s user`, Claude Desktop은 설정 → 개발자 → 설정 편집에서 `naver-mail` 항목 삭제.
 2. `.naver-mail-mcp` 폴더와 압축 푼 프로젝트 폴더를 삭제합니다.
 3. 네이버에서 만든 애플리케이션 비밀번호를 삭제합니다.
 
