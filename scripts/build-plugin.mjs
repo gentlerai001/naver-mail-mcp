@@ -1,8 +1,9 @@
+// Copies the installable plugin folder (metadata + bundled server) to a target
+// directory, by default ~/plugins/naver-mail-mcp for a personal marketplace.
 import { cp, mkdir, readFile, readdir, lstat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawnSync } from 'node:child_process';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const args = process.argv.slice(2);
@@ -24,12 +25,10 @@ const copies = [
   ['plugin/.codex-plugin/plugin.json', '.codex-plugin/plugin.json'],
   ['plugin/.mcp.json', '.mcp.json'],
   ['plugin/scripts/start.mjs', 'scripts/start.mjs'],
+  ['plugin/server/index.js', 'server/index.js'],
   ['plugin/README.md', 'README.md'],
   ['LICENSE', 'LICENSE'],
   ['.env.example', '.env.example'],
-  ['dist', 'server/dist'],
-  ['package.json', 'server/package.json'],
-  ['package-lock.json', 'server/package-lock.json'],
 ];
 for (const [source, target] of copies) {
   // Reject output links, including existing parent junctions, before writing.
@@ -42,10 +41,4 @@ for (const [source, target] of copies) {
   await mkdir(dirname(join(output, target)), { recursive: true });
   await cp(join(root, source), join(output, target), { recursive: true });
 }
-// npm supplies its JS entrypoint: use Node directly, avoiding Windows shell quoting.
-if (!process.env.npm_execpath) throw new Error('Run this builder through npm run build:plugin.');
-const install = spawnSync(process.execPath, [process.env.npm_execpath, 'ci', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], {
-  cwd: join(output, 'server'), stdio: 'inherit', windowsHide: true,
-});
-if (install.status !== 0) throw new Error('Plugin dependency installation failed.');
 console.log(`Plugin built: ${output}`);

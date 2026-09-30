@@ -1,9 +1,9 @@
 # Merge into your Codex config.toml; replace both paths with your absolute paths.
 [mcp_servers.naver-mail]
 command = "node"
-args = ["C:/projects/naver-mail-mcp/dist/index.js"]
+args = ["C:/Users/me/naver-mail-mcp/dist/index.js"]
 startup_timeout_sec = 20
 tool_timeout_sec = 120
 
 [mcp_servers.naver-mail.env]
-NAVER_ENV_FILE = "C:/projects/naver-mail-mcp/.env"
+NAVER_ENV_FILE = "C:/Users/me/.naver-mail-mcp/.env"

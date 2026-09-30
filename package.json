@@ -4,15 +4,34 @@
   "description": "Local MCP server for NAVER Mail: search, read and send via IMAP/SMTP.",
   "type": "module",
   "license": "MIT",
-  "repository": { "type": "git", "url": "https://github.com/gentlerai001/naver-mail-mcp.git" },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gentlerai001/naver-mail-mcp.git"
+  },
   "homepage": "https://github.com/gentlerai001/naver-mail-mcp#readme",
-  "bugs": { "url": "https://github.com/gentlerai001/naver-mail-mcp/issues" },
-  "engines": { "node": ">=22" },
-  "bin": { "naver-mail-mcp": "dist/index.js" },
-  "files": ["dist", "README.md", "LICENSE", "examples", ".env.example"],
+  "bugs": {
+    "url": "https://github.com/gentlerai001/naver-mail-mcp/issues"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "naver-mail-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "scripts",
+    "README.md",
+    "LICENSE",
+    "examples",
+    ".env.example",
+    "setup.sh",
+    "setup.cmd"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "build:plugin": "npm run build && node scripts/build-plugin.mjs",
+    "setup": "node scripts/setup.mjs",
+    "build:plugin": "npm run build:bundle && node scripts/build-plugin.mjs",
     "configure:plugin": "node scripts/configure-plugin.mjs",
     "register:plugin": "node scripts/register-plugin.mjs",
     "test:plugin": "node scripts/test-plugin.mjs",
@@ -20,9 +39,18 @@
     "dev": "tsx src/index.ts",
     "test": "npm run build && tsx --test test/*.test.ts",
     "check": "tsc -p tsconfig.test.json && npm test",
-    "prepack": "npm run build"
+    "prepack": "npm run build",
+    "build:bundle": "npm run build && node scripts/build-bundle.mjs"
   },
-  "keywords": ["mcp", "naver", "email", "imap", "smtp", "codex", "claude"],
+  "keywords": [
+    "mcp",
+    "naver",
+    "email",
+    "imap",
+    "smtp",
+    "codex",
+    "claude"
+  ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.30.0",
     "dotenv": "^17.2.3",
@@ -35,6 +63,7 @@
     "@types/mailparser": "^3.4.6",
     "@types/node": "^22.19.0",
     "@types/nodemailer": "^7.0.11",
+    "esbuild": "^0.28.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   }

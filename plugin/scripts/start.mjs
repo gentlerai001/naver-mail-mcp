@@ -19,4 +19,4 @@ if (!process.env.NAVER_ENV_FILE && !(process.env.NAVER_EMAIL && process.env.NAVE
   }
 }
 
-await import('../server/dist/index.js');
+await import('../server/index.js');

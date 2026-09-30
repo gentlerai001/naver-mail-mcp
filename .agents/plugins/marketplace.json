@@ -1,0 +1,20 @@
+{
+  "name": "gentler",
+  "interface": {
+    "displayName": "Gentler"
+  },
+  "plugins": [
+    {
+      "name": "naver-mail-mcp",
+      "source": {
+        "source": "local",
+        "path": "./plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

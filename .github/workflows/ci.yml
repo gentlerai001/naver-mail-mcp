@@ -20,6 +20,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+      - run: node --check scripts/setup.mjs
       - run: npm run build:plugin -- .local/plugins/naver-mail-mcp
+      - name: Committed plugin bundle must match the source
+        if: runner.os == 'Linux'
+        run: git diff --exit-code --stat -- plugin/server/index.js
       - run: npm run test:plugin -- .local/plugins/naver-mail-mcp
       - run: npm pack --dry-run

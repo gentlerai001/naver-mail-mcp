@@ -1,396 +1,184 @@
 # NAVER Mail MCP
 
-네이버 메일을 **Codex와 Claude Desktop에서 조회·검색·읽기·발송**하는 로컬 MCP 서버입니다.
-TypeScript / Node.js 기반이며 네이버의 IMAP·SMTP와 MCP `stdio`를 사용합니다.
+**ChatGPT(Codex)나 Claude에게 "내 네이버 메일 읽어 줘, 보내 줘"라고 시킬 수 있게 해 주는 도구입니다.**
 
-> 개인이 만든 비공식 프로젝트입니다. NAVER, OpenAI, Anthropic과 제휴 관계가 없습니다.
-> 초기 버전: 자동 테스트와 개인 네이버 계정 한 개에서 IMAP·SMTP 인증, MCP를 통한 HTML 발송 및 받은메일함 수신·본문 조회를 확인했습니다. Codex·Claude Desktop 앱 UI에서의 연결과 여러 메일 앱의 HTML 표시는 별도로 확인해야 합니다.
+프로그램이 내 PC에서만 돌아가고, 네이버 메일에 직접 연결됩니다. 비밀번호는 내 PC 밖으로 나가지 않습니다.
 
-```text
-Codex / Claude Desktop
-        │ stdio (local process)
-        ▼
-  NAVER Mail MCP
-        ├── IMAP · TLS · imap.naver.com:993
-        └── SMTP · STARTTLS · smtp.naver.com:587
-```
+> 개인이 만든 비공식 프로젝트입니다. NAVER, OpenAI, Anthropic과 관계가 없습니다.
 
-## 기능
+## 이런 걸 할 수 있어요
 
-| 도구 | 기능 |
-| --- | --- |
-| `list_mailboxes` | 받은메일함 등 실제 메일함 경로 조회 |
-| `search_emails` | 발신자·수신자·제목·본문·수신일·안 읽은 메일 검색, 페이지 이동 |
-| `get_email` | 한글 MIME 본문 해석, HTML을 텍스트로 변환, 첨부파일 정보 조회 |
-| `list_attachments` | 첨부파일 번호·이름·형식·크기·SHA-256 조회 |
-| `download_attachment` | 첨부파일을 지정한 로컬 폴더에 저장 |
-| `send_email` | 텍스트·HTML·첨부 발송, 참조·숨은참조, 답장 헤더, 발송 미리보기 |
-| `verify_connection` | 메일 발송 없이 IMAP 로그인과 SMTP 인증 확인 |
+설치가 끝나면 AI 앱에 이렇게 말하면 됩니다.
 
-조회는 읽음 상태를 바꾸지 않습니다. 발신 주소는 설정한 네이버 계정으로 고정됩니다.
-별도 AI API 키는 필요하지 않습니다. 연결한 AI 앱의 이용 조건은 별개입니다.
+- "안 읽은 메일 최신 10개만 요약해 줘"
+- "9월에 받은 메일 중 제목에 '견적서' 들어간 거 찾아 줘"
+- "이 메일 첨부파일 이름이 뭐야? PDF 내려받아 줘"
+- "홍길동님한테 '내일 2시 회의' 메일 보내 줘. 보내기 전에 미리 보여 줘"
+- "첨부 폴더에 있는 견적서.pdf 붙여서 보내 줘"
 
-## Codex 플러그인으로 설치
+메일을 읽어도 '읽음' 표시가 바뀌지 않고, 삭제·이동은 하지 않습니다.
 
-기존 MCP 설정 대신 Codex의 개인 플러그인 목록에서 설치할 수 있습니다.
-아래 계정 준비 과정으로 `.env`를 설정한 다음 프로젝트 폴더에서 실행하세요.
+## 설치하기
+
+두 가지 방법이 있습니다. **Codex 앱을 쓴다면 방법 A**가 가장 쉽습니다. 터미널을 열 일이 없습니다.
+
+| | 방법 A. Codex 앱에서 플러그인 설치 | 방법 B. 설치 파일 실행 |
+| --- | --- | --- |
+| 대상 | Codex 앱 | Claude Desktop, Claude Code, Codex 모두 |
+| 할 일 | 주소 붙여넣기 → 설치 → 채팅에 "설정해 줘" | ZIP 풀기 → `setup.cmd` 더블클릭 |
+| 걸리는 시간 | 2분 | 5분 |
+
+두 방법 모두 **공통 준비물**이 먼저 필요합니다.
+
+### 공통 준비 1. Node.js 설치 (이미 있으면 건너뛰기)
+
+[https://nodejs.org](https://nodejs.org) 에서 **LTS** 버튼을 눌러 설치합니다. 설치 중 나오는 선택지는 전부 기본값 그대로 두면 됩니다.
+버전이 22 이상이어야 합니다. 예전에 설치한 적이 있다면 한 번 다시 설치해 주세요.
+
+### 공통 준비 2. 네이버에서 세 가지 켜기
+
+1. PC로 네이버 메일에 들어가 **환경설정 → POP3/IMAP 설정 → IMAP/SMTP 설정 → "사용함"** 선택 후 저장
+   [네이버 안내 보기](https://help.naver.com/service/30029/contents/21344?osType=COMMONOS)
+2. **네이버ID → 보안설정 → 2단계 인증**을 켭니다. (이미 켜져 있으면 넘어가세요)
+3. 같은 화면의 **2단계 인증 → 관리 → 애플리케이션 비밀번호**에서 비밀번호를 하나 만듭니다.
+   이름은 아무거나("AI 메일") 적으면 되고, 화면에 나오는 **비밀번호를 복사해 두세요.** 설치 마지막 단계에서 붙여넣습니다.
+   [네이버 안내 보기](https://help.naver.com/service/5640/contents/8584?lang=ko&osType=PC)
+
+> 평소 로그인할 때 쓰는 비밀번호가 아니라 **애플리케이션 비밀번호**를 써야 합니다. 이걸 헷갈리면 로그인이 안 됩니다.
+
+---
+
+## 방법 A. Codex 앱에서 플러그인으로 설치 (가장 쉬움)
+
+1. Codex 앱에서 **플러그인** 화면을 열고 **마켓플레이스 추가**를 누릅니다.
+2. 아래 주소를 붙여넣고 확인합니다.
+   ```text
+   https://github.com/gentlerai001/naver-mail-mcp
+   ```
+3. 목록에 나타난 **NAVER Mail**을 설치합니다.
+4. **새 대화**를 열고 이렇게 말합니다.
+   > "네이버 메일 설정해 줘"
+5. 브라우저에 설정 창이 열립니다. 네이버 주소와 애플리케이션 비밀번호를 넣고 **연결 확인하고 저장**을 누릅니다.
+   네이버에 실제로 로그인해 보고 성공하면 바로 끝입니다. 앱을 다시 켤 필요도 없습니다.
+
+비밀번호는 내 PC의 설정 파일에만 저장되고 채팅으로는 전송되지 않습니다.
+계정을 바꾸거나 읽기 전용으로 바꾸고 싶으면 같은 말을 다시 하면 설정 창이 다시 열립니다.
+
+터미널이 편하다면 이 두 줄로도 같은 결과입니다.
 
 ```sh
-npm ci
-npm run build:plugin
-npm run configure:plugin -- /absolute/path/to/naver-mail-mcp/.env
-npm run register:plugin
-codex plugin add naver-mail-mcp@personal
-npm run test:plugin
+codex plugin marketplace add gentlerai001/naver-mail-mcp
+codex plugin add naver-mail-mcp@gentler
 ```
 
-Windows의 `.env` 경로 예시는 `C:/projects/naver-mail-mcp/.env`입니다.
-기존 개인 마켓플레이스의 이름이 `personal`과 다르면 등록 스크립트가 출력한 설치 명령을 사용하세요.
-앱을 새로고침하고 **새 대화**에서 NAVER Mail을 선택하세요.
-기존 수동 MCP 연결도 켜져 있다면 중복 도구를 피하도록 앱 설정에서 하나만 사용하세요.
+---
 
-- 플러그인 원본: `~/plugins/naver-mail-mcp`
-- 개인 마켓플레이스: `~/.agents/plugins/marketplace.json`
-- 개인 설정: `~/.naver-mail-mcp/config.json` (`.env`의 경로만 저장)
-- 빌드 결과는 실행 의존성을 포함합니다. 실행 시 npm 다운로드·설치를 하지 않습니다.
-- 테스트는 가짜 계정으로 7개 도구와 HTML 미리보기를 검증하며 실제 메일을 보내지 않습니다.
+## 방법 B. 설치 파일 실행 (Claude Desktop · Claude Code · Codex)
 
-Windows에서는 `~`가 사용자 프로필 폴더입니다. 다른 앱의 내장 터미널에서
-`HOME`이나 `CODEX_HOME`이 별도로 설정되어 있다면 독립 PowerShell에서 설치하세요.
-이 프로젝트의 빌드·등록 위치와 Codex가 사용하는 홈 폴더가 같아야 합니다.
+### B-1. 이 프로젝트 내려받기
 
-배포할 때는 **빌드된 플러그인 폴더**를 사용하세요. `plugin/`은 메타데이터와 시작 스크립트의
-원본이며 실행 서버는 `build:plugin`이 추가합니다. 계정 설정과 첨부파일은 패키지에 넣지 않습니다.
-사용자별로 네이버 계정 설정이 필요합니다. 플러그인 소스 변경 후에는 다시 빌드하고,
-Codex Plugin Creator의 캐시 갱신·재설치 절차를 사용하세요.
+이 페이지 위쪽의 초록색 **Code** 버튼 → **Download ZIP** 을 누르고, 받은 파일의 압축을 풉니다.
+바탕화면이나 문서 폴더처럼 찾기 쉬운 곳에 두세요. 폴더 이름은 `naver-mail-mcp-main` 처럼 됩니다.
 
-개인 마켓플레이스 등록과 GitHub 소스 공개는 공식 공개 디렉터리 등재와 별개입니다.
-공식 공개 MCP 제출은 현재 HTTPS 서버를 요구합니다.
-[Codex 플러그인 패키징·배포 안내](https://developers.openai.com/plugins/build/plugins)
-
-Claude Desktop은 아래의 기존 MCP 설정으로 연결할 수 있습니다. 이 Codex 패키지를
-Claude Desktop 확장 설치 파일로 사용할 수는 없습니다.
-
-## 1. 네이버 계정 준비
-
-1. PC 네이버 메일에서 **환경설정 → POP3/IMAP 설정 → IMAP/SMTP 설정 → 사용함**을 선택합니다.
-2. 네이버 계정의 **2단계 인증**을 설정합니다.
-3. **네이버ID → 보안설정 → 2단계 인증 → 관리 → 애플리케이션 비밀번호**에서 전용 비밀번호를 생성합니다.
-
-일반 로그인 비밀번호 대신 애플리케이션 비밀번호를 사용해야 합니다.
-[IMAP 설정 안내](https://help.naver.com/service/30029/contents/21344?osType=COMMONOS) · [앱 비밀번호 안내](https://help.naver.com/service/5640/contents/8584?lang=ko&osType=PC)
-
-## 2. 설치
-
-Node.js **22 이상**과 Git이 필요합니다. 저장소를 클론하거나 ZIP을 풀고 프로젝트 폴더에서 실행하세요.
+Git을 쓸 줄 안다면 이렇게 해도 됩니다.
 
 ```sh
 git clone https://github.com/gentlerai001/naver-mail-mcp.git
-cd naver-mail-mcp
-npm ci
-npm run build
 ```
 
-Windows PowerShell에서 `npm.ps1` 실행 정책 오류가 나면 `npm` 대신 `npm.cmd`를 사용하세요.
+### B-2. 설치 파일 실행
 
-Windows:
+압축을 푼 폴더를 열고,
 
-```powershell
-Copy-Item .env.example .env
-notepad .env
-```
+- **Windows**: `setup.cmd` 를 더블클릭합니다.
+- **Mac**: 폴더에서 마우스 오른쪽 클릭 → "폴더에서 새로운 터미널 열기" 후 `sh setup.sh` 를 입력하고 Enter.
 
-macOS / Linux:
-
-```sh
-cp .env.example .env
-chmod 600 .env
-```
-
-`.env`를 본인 계정 정보로 수정합니다. 실제 비밀번호를 채팅, 이슈, 커밋에 붙여 넣지 마세요.
-
-```dotenv
-NAVER_EMAIL=your-id@naver.com
-NAVER_APP_PASSWORD=replace-with-application-password
-NAVER_SENDER_NAME="보내는 이름"
-NAVER_ENABLE_SEND=true
-```
-
-서버는 `NAVER_ENV_FILE`로 지정한 파일을 읽습니다. 현재 작업 폴더의 `.env`를 자동으로 찾지 않으므로 앱이 다른 폴더에서 실행해도 설정이 일관됩니다. 같은 이름의 환경변수가 있으면 파일 값보다 우선합니다.
-
-| 설정 | 설명 |
-| --- | --- |
-| `NAVER_ENV_FILE` | `.env` 절대 경로. 생략하면 환경변수만 사용 |
-| `NAVER_EMAIL` | 필수. `@naver.com` 메일 주소 |
-| `NAVER_APP_PASSWORD` | 필수. 네이버 애플리케이션 비밀번호 |
-| `NAVER_SENDER_NAME` | 선택. 발신자 표시 이름 |
-| `NAVER_ENABLE_SEND` | 기본 `true`. `false`이면 발송 도구를 노출하지 않음 |
-| `NAVER_ATTACHMENT_DIR` | 선택. 첨부파일을 읽고 저장할 전용 폴더의 절대 경로 |
-
-`NAVER_ATTACHMENT_DIR`를 비워 두면 `NAVER_ENV_FILE` 옆의 `attachments/` 폴더를 사용합니다. 환경변수만 사용하는 경우에는 `~/.naver-mail-mcp/attachments`입니다. 폴더는 첫 파일 작업 때 자동 생성됩니다. 발송할 파일을 해당 폴더로 복사해 두세요. 현재 작업 폴더에 따라 첨부 경로가 바뀌지 않습니다.
-
-## 3. Codex 연결
-
-실제 설치 폴더의 절대 경로를 사용합니다. 아래는 Windows의 `C:/projects/naver-mail-mcp`에 설치한 예시입니다.
-
-```sh
-codex mcp add naver-mail --env NAVER_ENV_FILE=C:/projects/naver-mail-mcp/.env -- node C:/projects/naver-mail-mcp/dist/index.js
-```
-
-또는 Codex 설정 파일에 아래 항목을 추가합니다. 일반적인 위치는 `~/.codex/config.toml`이며, 별도 `CODEX_HOME`을 설정했다면 해당 폴더의 설정 파일을 사용합니다. 기존 설정을 통째로 덮어쓰지 마세요.
-
-```toml
-[mcp_servers.naver-mail]
-command = "node"
-args = ["C:/projects/naver-mail-mcp/dist/index.js"]
-startup_timeout_sec = 20
-tool_timeout_sec = 120
-
-[mcp_servers.naver-mail.env]
-NAVER_ENV_FILE = "C:/projects/naver-mail-mcp/.env"
-```
-
-Codex를 새로 시작해 도구 목록을 확인합니다. macOS/Linux에서는 경로를 `/Users/you/projects/...` 또는 `/home/you/projects/...`로 바꾸세요.
-앱이 `node`를 찾지 못하면 `command`에 Node 실행 파일 절대 경로를 사용합니다.
-[공식 Codex MCP 안내](https://developers.openai.com/codex/mcp/)
-
-## 4. Claude Desktop 연결
-
-**Settings → Developer → Edit Config**에서 다음 내용을 기존 `mcpServers`에 합칩니다.
-
-```json
-{
-  "mcpServers": {
-    "naver-mail": {
-      "command": "node",
-      "args": ["C:/projects/naver-mail-mcp/dist/index.js"],
-      "env": {
-        "NAVER_ENV_FILE": "C:/projects/naver-mail-mcp/.env"
-      }
-    }
-  }
-}
-```
-
-설정 파일 위치:
-
-- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
-- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-
-Claude Desktop을 완전히 종료한 뒤 다시 실행합니다. 위 설정은 로컬 `stdio` 서버용이며 원격 커넥터 URL 입력란에 추가하는 방식과 다릅니다.
-[공식 로컬 MCP 연결 안내](https://modelcontextprotocol.io/docs/develop/connect-local-servers)
-
-복사용 파일은 [`examples`](examples/)에 있습니다. 비밀번호는 예시 파일에 적지 않고 `.env`에만 보관하세요.
-
-## 5. 사용 예시
-
-연결 후 AI 앱에서 다음처럼 요청할 수 있습니다.
-
-- “네이버 메일 연결 상태 확인해 줘.”
-- “안 읽은 메일 최신 10개 요약해 줘.”
-- “9월 1일부터 받은 메일 중 제목에 견적서가 있는 메일 찾아 줘.”
-- “이 메일 본문과 첨부파일 이름을 보여 줘.”
-- “recipient@example.com에게 제목 ‘회의 일정’, 본문 ‘내일 오후 2시에 뵙겠습니다.’로 메일 보내 줘.”
-
-검색 예시:
-
-```json
-{
-  "mailbox": "INBOX",
-  "subject": "견적서",
-  "since": "2026-09-01",
-  "before": "2026-10-01",
-  "unread_only": true,
-  "limit": 20
-}
-```
-
-필터는 AND 조건입니다. 날짜는 메일 헤더의 발송일이 아닌 서버 내부 수신일을 사용하고, `since`는 포함, `before`는 제외합니다. IMAP 날짜 검색은 시간대 변환 없는 달력 날짜 기준입니다. 필터 없이 호출하면 최근 메일 목록을 반환합니다. 순서는 수신함 UID 내림차순입니다.
-
-다음 페이지는 같은 조건에 결과의 `next_before_uid`를 `before_uid`로 넣습니다. `matched_remaining`은 해당 페이지 범위에 남아 있는 검색 결과 수입니다. 본문 조회에는 검색에서 반환된 `mailbox`, `uid`, `uid_validity`를 함께 사용합니다.
-
-```json
-{
-  "mailbox": "INBOX",
-  "uid": 123,
-  "uid_validity": "456",
-  "max_chars": 20000
-}
-```
-
-발송 미리보기 예시 (`send_email`):
-
-```json
-{
-  "to": ["recipient@example.com"],
-  "cc": [],
-  "bcc": [],
-  "subject": "회의 일정",
-  "text": "내일 오후 2시에 뵙겠습니다.",
-  "dry_run": true,
-  "request_id": "meeting-20260912-001"
-}
-```
-
-`dry_run: true`는 네트워크 접속 없이 미리보기만 반환합니다. **`dry_run`을 생략하거나 `false`로 설정하면 실제 발송됩니다.** 위 예시의 주소를 본인이 의도한 수신자로 바꾼 뒤 사용하세요.
-
-답장은 원본 `message_id`를 `in_reply_to`에, 필요한 원본 Message-ID 목록을 `references`에 전달합니다. 수신자는 사용자가 지정한 주소를 사용합니다.
-
-HTML 메일은 필수 `text`에 텍스트 대체 본문을, 선택 `html`에 HTML 문자열을 넣습니다. 두 버전을 `multipart/alternative` 형식으로 전송합니다. `html`은 최대 200,000자이며 파일 경로 객체나 URL 객체는 받지 않습니다. 인라인 CSS와 이메일용 표 레이아웃을 권장합니다. 외부 이미지 없는 디자인 예시는 [`examples/first-signal.html`](examples/first-signal.html)에 있습니다. 서버는 HTML을 그대로 전달하며 수신 메일 앱이 표시 방식을 결정합니다. HTML 안의 원격 이미지 URL은 수신 앱에서 로드될 수 있습니다.
-
-### 첨부파일 받기
-
-“이 메일의 견적서 PDF를 내려받아 줘”라고 요청할 수 있습니다. `get_email` 또는 `list_attachments`에서 반환하는 `attachment_index`를 사용합니다. 번호는 0부터 시작하고, 같은 메일의 MIME 첨부 순서를 따릅니다.
-
-`list_attachments` 입력:
-
-```json
-{ "mailbox": "INBOX", "uid": 123, "uid_validity": "456" }
-```
-
-`download_attachment` 입력:
-
-```json
-{
-  "mailbox": "INBOX",
-  "uid": 123,
-  "uid_validity": "456",
-  "attachment_index": 0,
-  "save_as": "받은-견적서.pdf"
-}
-```
-
-`save_as`는 폴더를 포함하지 않는 파일명입니다. 생략하면 원본 이름을 정리하고 임의 접두사를 붙여 안전한 이름을 생성합니다. 기존 파일은 덮어쓰지 않으며, 결과에는 상대 경로 `path`, 절대 경로 `absolute_path`, 크기와 `sha256`이 포함됩니다. 파일 내용은 도구 응답에 넣지 않습니다. 메일의 읽음 상태도 바꾸지 않습니다.
-
-첨부 작업은 **MIME 인코딩을 포함한 메일 원문 전체를 메모리에서 해석**합니다. 네이버의 수신 한도 40MB 안내를 수용하도록 본문·첨부 작업의 파싱 상한을 모두 40 MiB(41,943,040바이트)로 통일했습니다. 공식 문서가 MB의 바이트 환산 방식을 명시하지 않아 두 해석을 모두 수용하는 버퍼 상한을 사용하며, 이 값이 서버의 정확한 수신 허용 바이트 수라는 의미는 아닙니다. 별도의 다운로드 파일당 10 MiB 제한은 없습니다. 본문 인라인 이미지도 MIME 첨부로 포함될 수 있습니다. 파일을 실행하거나 압축을 자동 해제하지 않습니다. [네이버 수신 한도 안내](https://help.naver.com/service/30029/contents/21233?lang=ko&osType=COMMONOS)
-
-### 첨부파일 보내기
-
-“첨부 폴더의 견적서.pdf를 넣어서 메일 보내 줘”라고 요청할 수 있습니다. 파일은 지정한 폴더 안에 있어야 합니다.
-
-```json
-{
-  "to": ["recipient@example.com"],
-  "subject": "견적서 전달",
-  "text": "요청하신 견적서를 첨부합니다.",
-  "html": "<p>요청하신 <strong>견적서</strong>를 첨부합니다.</p>",
-  "attachments": [
-    { "path": "견적서.pdf", "filename": "견적서-최종.pdf" }
-  ],
-  "dry_run": true,
-  "request_id": "quote-attachment-001"
-}
-```
-
-`path`는 첨부 폴더 기준 상대 경로이며 하위 폴더도 사용할 수 있습니다. `filename`은 수신자에게 보일 파일명으로 생략할 수 있습니다. 미리보기는 파일을 읽어 이름·크기·SHA-256과 메일 전체의 인코딩 후 바이트 수 `encoded_message_bytes`, 선검사 한도 `smtp_limit_bytes`를 반환하지만 발송하지 않습니다. 실제 전송 때 첨부 항목의 `expected_sha256`에 미리보기 해시를 넣으면 파일 변경 시 전송을 막습니다.
-
-```json
-{
-  "path": "견적서.pdf",
-  "filename": "견적서-최종.pdf",
-  "expected_sha256": "미리보기에서 반환한 64자리 소문자 SHA-256 값"
-}
-```
-
-위 `expected_sha256` 예시 문구는 실제 해시로 바꿔야 합니다. 미리보기 후 `dry_run: false`로 호출하면 전송합니다. 첨부가 있으면 `multipart/mixed`로 구성하고 HTML·텍스트 대체 본문도 함께 유지합니다. 전송 시 파일 내용을 메모리에 읽어 고정하고, MIME 스트림의 실제 바이트 수를 세면서 한도 초과 시 중단합니다. 한도 안이면 검사한 MIME 원문 그대로 전송하며 SMTP `SIZE`에도 실제 바이트 수를 전달합니다.
-
-### 네이버 실제 크기 한도
-
-2026-09-12에 `smtp.naver.com:587`에 인증서 검증을 켠 STARTTLS로 접속해 EHLO 응답을 직접 확인했습니다. 로그인과 메일 발송 없이 서버 기능만 조회한 결과입니다.
+검은 창이 뜨고 설치 마법사가 순서대로 물어봅니다.
 
 ```text
-SIZE 39845888
+네이버 메일 주소:                    ← 내 네이버 주소
+애플리케이션 비밀번호:               ← 공통 준비 2에서 복사한 것 붙여넣기 (화면엔 *** 로 보임)
+보내는 사람 이름 (비워도 됩니다):     ← 받는 사람에게 보일 이름
+AI 가 메일을 보낼 수 있게 할까요?     ← 읽기만 원하면 n
+Codex 에 연결할까요?                 ← 설치된 앱만 물어봅니다. Enter 면 예
+Claude Desktop 에 연결할까요?
+Claude Code 에 연결할까요?
 ```
 
-따라서 SMTP 발송 선검사 기준은 **메일 전체 인코딩 후 39,845,888바이트 = 38 MiB**입니다. 헤더·본문·HTML·첨부·MIME 경계·base64 줄바꿈까지 포함합니다. 별도의 파일당 10 MiB / 원본 합계 20 MiB 제한은 제거했습니다. 파일 크기만으로 발송 가능 여부를 판정하지 않습니다. 예를 들어 테스트용 바이너리 25 MiB 파일은 통과하지만 28 MiB 파일은 base64 인코딩 후 한도를 넘습니다. 실제 첨부 가능 크기는 본문·파일명·파일 수에 따라 달라집니다.
+마법사가 네이버에 실제로 로그인해 보고, 설치된 AI 앱을 찾아서 알아서 연결합니다.
+처음 실행할 때는 필요한 파일을 내려받느라 1~2분 걸립니다.
 
-발송하는 SMTP 연결에도 실제 메시지 크기를 넘기므로, 서버가 더 낮은 `SIZE`를 알리면 Nodemailer가 `MAIL FROM`·`DATA` 전에 거절합니다. 38 MiB는 위 확인일의 기본 선검사 값이며 서버가 앞으로 한도를 높이면 [`src/limits.ts`](src/limits.ts)의 기준도 다시 확인해 갱신해야 합니다. 수신자 서비스의 별도 한도나 콘텐츠 정책에 따라 나중에 거절될 수 있습니다.
+### B-3. 앱을 완전히 껐다 켜기
 
-네이버 **웹메일**은 10MB 이상의 파일을 대용량 파일로 분류하며 파일당 2GB, 메일당 최대 10개를 안내합니다. 이것은 웹 업로드 후 링크로 전달하는 별도 기능으로, SMTP에 2GB 첨부를 직접 넣을 수 있다는 의미가 아닙니다. 이 프로젝트는 대용량 링크 업로드를 구현하지 않습니다. [네이버 파일 첨부 안내](https://help.naver.com/service/30029/contents/21293?lang=ko&osType=PC)
+AI 앱을 **완전히 종료**했다가 다시 실행합니다. (창만 닫지 말고 트레이 아이콘까지 종료)
+그리고 새 대화에서 이렇게 말해 보세요.
 
-### 발송 결과와 재시도
+> "네이버 메일 연결 상태 확인해 줘"
 
-- `accepted`: SMTP 서버가 메시지를 접수했습니다. 최종 수신함 도착을 보장하지 않습니다.
-- `partially_accepted`: 일부 수신자는 접수됐고 일부는 거절됐습니다. `accepted`/`rejected` 목록을 확인하세요.
-- `SEND_FAILED_OR_UNKNOWN`: 실패했거나 접수 여부가 불확실합니다. 자동 재발송하지 않습니다.
+"연결됨"이라고 답하면 끝입니다.
 
-같은 `request_id`와 같은 내용을 다시 호출하면 기존 결과를 반환합니다. 같은 ID에 다른 내용을 사용하면 거절합니다. 실패한 요청도 재시도하지 않도록 기억합니다.
-첨부파일 내용 해시도 중복 판정에 포함하므로 파일이 바뀌면 같은 ID로 새 내용을 발송하지 않습니다. 재호출 시에는 첨부파일이 같은 경로에 읽을 수 있는 상태로 남아 있어야 합니다.
-이 기록은 **현재 서버 프로세스 메모리에만** 있으며 재시작하거나 Codex와 Claude Desktop이 별도 프로세스를 실행하면 공유되지 않습니다. 프로세스당 최대 1,000개 발송 시도를 저장하며 자동 삭제하지 않습니다. SMTP와 로컬 상태 사이에 원자적 처리는 없으므로 정확히 한 번 전달을 보장하지 않습니다.
+## 막혔을 때
 
-## 범위와 제한
+**더블클릭했는데 창이 바로 사라져요**
+Node.js가 없을 때 그렇습니다. 공통 준비 1을 먼저 하고, PC를 한 번 재부팅한 뒤 다시 실행하세요.
 
-- 개인 `@naver.com` 계정 한 개 / 프로세스. NAVER WORKS, `@me.com` 별칭, OAuth 로그인은 지원하지 않습니다.
-- SMTP 발송은 실제 인코딩된 메일 전체 38 MiB 이내이며 더 낮은 서버 `SIZE`도 적용합니다. 첨부 개수 최대 10개는 프로젝트의 도구 입력 제한이며 SMTP가 광고한 개수 한도는 아닙니다.
-- 본문·첨부 작업은 수신 원문 파싱 상한 40 MiB를 공유하며 파일당 10 MiB 제한은 없습니다. 웹링크 방식의 네이버 대용량 첨부는 자동 다운로드하지 않습니다. CID 이미지 삽입은 아직 지원하지 않습니다.
-- 본문은 기본 20,000자, 최대 100,000자를 반환하며 잘렸는지 표시합니다.
-- 검색은 페이지당 최대 50개, 발송은 참조·숨은참조를 포함해 최대 20개 주소입니다.
-- 삭제, 이동, 읽음 변경, 예약 발송, 백그라운드 수신 감시는 제공하지 않습니다.
-- SMTP 발송 후 별도 IMAP 보낸메일함 저장은 수행하지 않습니다. 네이버의 자동 저장 동작은 실제 계정에서 확인해야 합니다.
-- 한글 검색 지원과 검색 결과는 네이버 IMAP 서버 동작에 따릅니다.
+**"Windows의 PC 보호" 파란 창이 떠요**
+인터넷에서 받은 스크립트라 뜨는 경고입니다. **추가 정보 → 실행**을 누르면 됩니다.
 
-## 개인정보와 보안
+**"네이버에 로그인하지 못했습니다"**
+거의 항상 아래 셋 중 하나입니다.
+1. IMAP/SMTP가 "사용 안 함"으로 되어 있음 → 공통 준비 2의 1번
+2. 2단계 인증이 꺼져 있음 → 공통 준비 2의 2번
+3. 로그인 비밀번호를 넣었음 → 애플리케이션 비밀번호를 새로 만들어 넣기
+`setup.cmd` 를 다시 실행하면 처음부터 다시 입력할 수 있습니다.
 
-서버는 로컬에서 실행되며 HTTP 포트를 열지 않습니다. 메일 접속 정보는 네이버 인증에만 사용하고 별도 수집 서버나 분석 도구로 전송하지 않습니다. 단, **조회된 메일 내용은 연결한 AI 앱에 도구 결과로 전달됩니다.** `.env`는 평문 파일이므로 OS 권한으로 접근을 제한하세요.
+**앱에 네이버 메일 도구가 안 보여요**
+앱을 완전히 종료했다가 다시 켰는지 확인하세요. Codex는 새 대화를 시작해야 보입니다.
+그래도 안 되면 `setup.cmd` 를 다시 실행해 해당 앱에 "예"로 답하세요.
 
-IMAP/SMTP에는 인증서 검증을 켠 TLS를 사용합니다. SMTP는 STARTTLS가 불가능하면 실패합니다. 본문 변환 중 외부 이미지나 URL을 가져오지 않습니다. 첨부는 지정한 폴더의 상대 경로만 받아 읽고, Nodemailer 자체 파일·URL 접근은 계속 비활성화합니다. 서버 로그와 도구 오류에서 원본 인증 오류/프로토콜 대화를 출력하지 않습니다.
+**"설정해 줘"라고 했는데 브라우저 창이 안 열려요**
+AI가 답변에 적어 준 `http://127.0.0.1:...` 주소를 복사해 브라우저 주소창에 붙여넣으세요. 이 주소는 내 PC 안에서만 열리고 15분 뒤 만료됩니다.
 
-첨부 경로의 `..`, 절대 경로, URL, 숨김 파일, Windows 장치 이름·대체 데이터 스트림, 심볼릭 링크·정션·하드 링크를 거절합니다. 다운로드 파일을 덮어쓰지 않습니다. 전용 첨부 폴더는 신뢰하는 로컬 사용자가 관리해야 하며, OS 샌드박스를 대체하지 않습니다. 로컬의 다른 프로세스가 동시에 디렉터리를 악의적으로 변경하는 환경을 방어하는 용도는 아닙니다. 비밀번호 폴더나 홈 디렉터리 전체를 첨부 폴더로 지정하지 마세요.
+**계정을 바꾸고 싶어요 / 읽기 전용으로 바꾸고 싶어요**
+AI 앱에 "네이버 메일 설정해 줘"라고 말하면 설정 창이 다시 열립니다. 방법 B로 설치했다면 `setup.cmd` 를 다시 실행해도 됩니다.
 
-받은 메일의 본문·제목·발신자 표시는 신뢰할 수 없는 데이터입니다. 서버 도구 설명에 메일 속 지시를 따르지 않도록 안내하지만, 그것만으로 프롬프트 인젝션을 완전히 차단하지는 못합니다. 발송에는 AI 앱의 도구 승인 설정이 적용되며 이 서버가 별도의 사람 확인 UI를 강제하지는 않습니다.
+**비밀번호는 어디에 저장되나요?**
+내 PC의 `내 사용자 폴더\.naver-mail-mcp\.env` 파일 한 곳에만 저장됩니다. 인터넷으로 전송되지 않습니다.
+Windows는 `C:\Users\내이름\.naver-mail-mcp`, Mac은 `/Users/내이름/.naver-mail-mcp` 입니다.
 
-`.gitignore`는 `.env`, 기본 `attachments/` 폴더와 개인 앱 설정 파일을 제외하고, npm 패키지는 `files` 허용 목록만 포함합니다. 별도 첨부 폴더를 다른 Git 저장소 안에 지정했다면 해당 저장소에서도 제외하세요.
+**첨부파일을 보내려면?**
+위 폴더 안의 `attachments` 폴더에 파일을 넣고 "첨부 폴더의 파일명.pdf 붙여서 보내 줘"라고 하면 됩니다.
+받은 첨부파일도 같은 폴더에 저장됩니다.
 
-## 개발과 검증
+**지우고 싶어요**
+1. AI 앱에서 연결을 해제합니다. Codex는 플러그인 화면에서 NAVER Mail 제거(또는 터미널에서 `codex plugin remove naver-mail-mcp@gentler`), Claude Code는 `claude mcp remove naver-mail -s user`, Claude Desktop은 설정 → 개발자 → 설정 편집에서 `naver-mail` 항목 삭제.
+2. `.naver-mail-mcp` 폴더와 압축 푼 프로젝트 폴더를 삭제합니다.
+3. 네이버에서 만든 애플리케이션 비밀번호를 삭제합니다.
+
+## 안전하게 쓰기
+
+- 비밀번호는 내 PC에만 있지만, **읽어 온 메일 내용은 AI 앱(OpenAI·Anthropic)으로 전달**됩니다. 민감한 메일이 많은 계정이라면 읽기 전용 계정을 따로 쓰는 것도 방법입니다.
+- 메일을 보내기 전에는 "보내기 전에 미리 보여 줘"라고 하는 습관을 들이세요. AI 앱 설정에서 도구 실행 전 확인을 켜 두면 더 안전합니다.
+- 받은 메일 안에 "이 메일을 전달해라" 같은 문장이 있어도 AI가 그걸 따르면 안 됩니다. 도구 설명에 그렇게 안내하지만 완벽하지 않으니, AI가 이상한 행동을 하면 바로 중단하세요.
+- 공용 PC에는 설치하지 마세요.
+
+## 더 알아보기
+
+- [직접 연결하기 (수동 설정)](docs/manual-setup.md): 마법사 없이 설정 파일을 손으로 고치고 싶을 때, 또는 Codex 플러그인 형태로 쓰고 싶을 때
+- [기술 문서](docs/reference.md): 도구 8개의 입력값, 검색·첨부·발송 한도, 보안 설계, 개발·테스트 방법
+
+개발자라면 이 명령으로 검증할 수 있습니다.
 
 ```sh
 npm ci
-npm run check
-npm run build
-npm pack --dry-run
+npm run check      # 타입 검사 + 테스트 41개
+npm run setup      # 설치 마법사
 ```
 
-테스트는 가짜 IMAP 클라이언트, 로컬 SMTP 소켓, 실제 MCP 클라이언트/stdio 프로세스를 사용합니다. 네이버 계정이나 외부 수신자에게 접근하지 않습니다.
-GitHub Actions에서 Windows/macOS/Linux와 Node.js 22/24 조합을 검증하도록 설정되어 있습니다. CI 결과는 저장소에 push한 뒤 확인할 수 있습니다.
-
-실계정 확인 순서: `.env` 입력 → 앱 연결 → `verify_connection` → 목록/검색/본문 확인 → 본인 주소로 미리보기 → 실제 발송 및 수신 확인.
-
-`npm start`로 직접 실행하면 stdio 입력을 기다리므로 화면에 아무것도 나오지 않는 것이 정상입니다. 수동 실행에서는 먼저 `NAVER_ENV_FILE`을 설정하세요.
-
-```powershell
-$env:NAVER_ENV_FILE = 'C:/projects/naver-mail-mcp/.env'
-npm.cmd start
-```
-
-## 문제 해결
-
-| 증상 | 확인할 내용 |
-| --- | --- |
-| `Missing or invalid configuration` | `.env`의 계정·앱 비밀번호와 `NAVER_ENV_FILE` 절대 경로 |
-| `Cannot read NAVER_ENV_FILE` | 파일 존재 여부와 OS 접근 권한 |
-| 인증 실패 | IMAP 사용함, 2단계 인증, 애플리케이션 비밀번호 |
-| 앱에 도구가 없음 | 빌드 완료, 절대 경로, Node 경로, 앱 완전 재시작 |
-| `STALE_UID` | 메일함 식별자가 바뀜. 다시 검색한 결과로 조회 |
-| `MESSAGE_TOO_LARGE` | 발송은 인코딩 후 38 MiB 및 서버 SIZE, 수신 파싱은 원문 40 MiB 상한 확인 |
-| `ATTACHMENT_READ_FAILED` | 첨부 폴더 안에 해당 상대 경로의 파일이 있는지 확인 |
-| `ATTACHMENT_CHANGED` | 미리보기 이후 파일이 바뀜. 다시 미리보기한 뒤 해시 갱신 |
-| `ATTACHMENT_EXISTS` | 다른 `save_as` 이름을 사용하거나 이름 자동 생성 |
-| SMTP 오류 또는 부분 성공 | 기존 접수 여부 확인 후 필요한 수신자만 새 요청으로 발송 |
-
-## GitHub 공개
-
-이 프로젝트는 MIT 라이선스입니다. 수정한 버전을 공개할 때는 아래 명령으로 포함 파일을 검토하세요.
-
-```sh
-git status --short
-git ls-files
-npm pack --dry-run
-```
-
-`.env`, 메일 원문, 첨부파일, 개인 앱 설정을 커밋하지 마세요. 아직 npm에 배포된 패키지라는 가정은 하지 않으며, 위 설치 안내는 소스를 내려받아 빌드하는 방식입니다.
+MIT 라이선스입니다.
 
 ## English
 
-Local stdio MCP server for personal NAVER Mail accounts. Provides mailbox listing, filtered search with UID pagination, decoded message reading, attachment listing/downloads, text/HTML/attachment SMTP sending (cc/bcc/reply headers), dry-run previews, and authentication checks. Requires Node.js 22+, NAVER IMAP/SMTP enabled, two-step verification, and an application password. Attachments stay inside NAVER_ATTACHMENT_DIR (default: attachments/ beside the env file). Up to 10 attachments. The entire MIME-encoded outgoing message must fit 39,845,888 bytes (38 MiB), directly verified via NAVER SMTP EHLO on 2026-09-12. Any lower SIZE advertised by the live SMTP connection is also enforced. Incoming message parsing uses a 40 MiB ceiling to accommodate NAVER's documented 40 MB receive limit. Downloads never overwrite existing files. No separate 10 MiB file or 20 MiB total attachment cap remains.
+Local stdio MCP server for personal NAVER Mail accounts, for Codex, Claude Desktop and Claude Code. Search, read, download attachments, and send text/HTML mail with attachments through NAVER IMAP/SMTP. Requires Node.js 22+, NAVER IMAP/SMTP enabled, two-step verification, and an application password.
 
-Run `npm ci && npm run build`, copy `.env.example` to `.env`, fill in your account, and use the client configurations in `examples/` with absolute paths. Launch `node /absolute/path/dist/index.js` with `NAVER_ENV_FILE=/absolute/path/.env`. Credentials remain local; retrieved mail is returned to your AI client. Send deduplication is in-memory and process-local. This unofficial project is not affiliated with NAVER, OpenAI, or Anthropic. MIT licensed.
+Quick start (Codex app): add `https://github.com/gentlerai001/naver-mail-mcp` as a plugin marketplace, install NAVER Mail, then say "set up NAVER mail" in a new chat; a local browser page collects the account and verifies the login, with no restart needed. Alternatively download the ZIP and run `setup.cmd` (Windows) or `sh setup.sh` (macOS/Linux): the interactive wizard asks for your account, verifies the login, detects installed AI apps and registers the server. Credentials stay in `~/.naver-mail-mcp/.env`. See [docs/manual-setup.md](docs/manual-setup.md) and [docs/reference.md](docs/reference.md) for manual configuration and the full tool reference. Unofficial; not affiliated with NAVER, OpenAI, or Anthropic. MIT licensed.

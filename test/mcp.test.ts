@@ -83,7 +83,8 @@ test('real stdio subprocess initializes and previews without stdout contaminatio
   const client = new Client({ name: 'stdio-test', version: '1' });
   try {
     await client.connect(transport);
-    assert.equal((await client.listTools()).tools.length, 7);
+    const names = (await client.listTools()).tools.map(tool => tool.name);
+    assert.equal(names.length, 8); assert.ok(names.includes('setup_naver_mail'));
     const result = await client.callTool({ name: 'send_email', arguments: { to: ['recipient@example.com'], subject: '한글', text: '본문', html: '<h1>한글 HTML</h1>', request_id: 'stdio-001', dry_run: true } });
     assert.notEqual(result.isError, true); assert.match(JSON.stringify(result), /preview/);
     assert.match(JSON.stringify(result), /<h1>한글 HTML<\/h1>/);
