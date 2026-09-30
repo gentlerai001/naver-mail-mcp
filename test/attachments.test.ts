@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test, type TestContext } from 'node:test';
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, linkSync, symlinkSync, readdirSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, linkSync, symlinkSync, readdirSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { ImapFlow } from 'imapflow';
@@ -12,9 +12,10 @@ import { loadConfig } from '../src/config.js';
 import { simpleParser } from 'mailparser';
 
 function directory(t: TestContext) {
-  const parent = mkdtempSync(join(tmpdir(), 'naver-attachments-'));
+  // macOS tmpdir is a symlink (/var -> /private/var); compare against the real path the store resolves.
+  const parent = realpathSync(mkdtempSync(join(tmpdir(), 'naver-attachments-')));
   t.after(() => {
-    assert.equal(dirname(resolve(parent)), resolve(tmpdir()));
+    assert.equal(dirname(resolve(parent)), realpathSync(tmpdir()));
     assert.ok(parent.includes('naver-attachments-'));
     rmSync(parent, { recursive: true, force: true });
   });
