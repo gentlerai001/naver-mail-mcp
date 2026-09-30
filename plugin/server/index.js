@@ -83430,7 +83430,7 @@ function loadConfig(env = process.env) {
     }
   }
   for (const key of ["NAVER_EMAIL", "NAVER_APP_PASSWORD", "NAVER_SENDER_NAME", "NAVER_ENABLE_SEND", "NAVER_ATTACHMENT_DIR"]) {
-    if (env[key] !== void 0)
+    if (env[key] !== void 0 && env[key] !== "")
       values[key] = env[key];
   }
   const result = configSchema.safeParse(values);

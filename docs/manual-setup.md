@@ -113,11 +113,26 @@ claude mcp get naver-mail
 
 [`examples/`](../examples/) 폴더에 Codex·Claude Desktop 설정 예시가 있습니다. 비밀번호는 예시 파일에 적지 말고 `.env` 에만 두세요.
 
-## 4. Codex 플러그인 형태로 쓰기
+## 4. 플러그인 형태로 쓰기 (Codex · Claude)
 
-Codex 앱의 플러그인 목록에 "NAVER Mail"로 표시되는 방식이며, README 의 방법 A 가 이것입니다.
-이 저장소 자체가 마켓플레이스입니다. 루트의 `.agents/plugins/marketplace.json` 이 `./plugin` 폴더를 플러그인으로 가리키고,
+이 저장소는 Codex 와 Claude Code 양쪽의 마켓플레이스입니다. 루트의 `.agents/plugins/marketplace.json`(Codex)과
+`.claude-plugin/marketplace.json`(Claude)이 같은 `./plugin` 폴더를 가리킵니다. 플러그인 폴더 안에는
+`.codex-plugin/plugin.json` + `.codex-mcp.json`(Codex 용)과 `.claude-plugin/plugin.json`(Claude 용, MCP 설정 내장)이 함께 있고,
 `plugin/server/index.js` 는 실행 의존성을 모두 담은 단일 번들이라 사용자 PC 에서 npm 설치가 필요 없습니다.
+
+### Claude Code / Claude 데스크톱 앱
+
+```text
+/plugin marketplace add gentlerai001/naver-mail-mcp
+/plugin install naver-mail-mcp@gentler
+```
+
+설치 시 `userConfig` 로 네이버 주소와 앱 비밀번호를 물어보며, 비밀번호는 `sensitive` 로 표시되어 안전한 저장소에 들어갑니다.
+값은 MCP 서버의 `NAVER_EMAIL`·`NAVER_APP_PASSWORD` 환경변수로 전달됩니다. 비워 두면 서버가 `~/.naver-mail-mcp/.env` 를 찾고,
+없으면 `setup_naver_mail` 브라우저 설정 창으로 안내합니다. 나중에 바꾸려면 `/plugin configure naver-mail-mcp@gentler`.
+검증: `claude plugin validate .` 와 `claude plugin validate ./plugin`.
+
+### Codex
 
 ```sh
 codex plugin marketplace add gentlerai001/naver-mail-mcp   # 또는 로컬 클론 경로

@@ -6,7 +6,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 
 const root = resolve(process.argv[2] || join(homedir(), 'plugins', 'naver-mail-mcp'));
-const config = JSON.parse(await readFile(join(root, '.mcp.json'), 'utf8')).mcpServers['naver-mail'];
+const config = JSON.parse(await readFile(join(root, '.codex-mcp.json'), 'utf8')).mcpServers['naver-mail'];
 const client = new Client({ name: 'plugin-smoke-test', version: '1.0.0' });
 const transport = new StdioClientTransport({
   command: process.execPath,

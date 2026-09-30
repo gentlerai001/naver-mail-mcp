@@ -1,0 +1,18 @@
+{
+  "name": "gentler",
+  "description": "Gentler plugins: NAVER Mail for Claude",
+  "owner": {
+    "name": "Gentler",
+    "url": "https://github.com/gentlerai001"
+  },
+  "plugins": [
+    {
+      "name": "naver-mail-mcp",
+      "source": "./plugin",
+      "displayName": "NAVER Mail",
+      "description": "네이버 메일 검색·읽기·HTML 발송·첨부파일. 설치 후 계정을 입력하거나 \"네이버 메일 설정해 줘\"라고 말하면 됩니다.",
+      "category": "productivity",
+      "tags": ["naver", "email", "imap", "smtp", "korean"]
+    }
+  ]
+}

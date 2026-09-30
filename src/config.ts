@@ -27,8 +27,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     try { values = parse(readFileSync(env.NAVER_ENV_FILE)); }
     catch { throw new Error('Cannot read NAVER_ENV_FILE. Check the absolute path and file permissions.'); }
   }
+  // Empty strings count as unset: plugin hosts substitute blank user settings as "".
   for (const key of ['NAVER_EMAIL', 'NAVER_APP_PASSWORD', 'NAVER_SENDER_NAME', 'NAVER_ENABLE_SEND', 'NAVER_ATTACHMENT_DIR']) {
-    if (env[key] !== undefined) values[key] = env[key];
+    if (env[key] !== undefined && env[key] !== '') values[key] = env[key];
   }
   const result = configSchema.safeParse(values);
   if (!result.success) {

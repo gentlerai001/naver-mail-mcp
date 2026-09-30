@@ -20,7 +20,7 @@ test('explicit env file works with spaces and Korean paths; environment override
   try {
     const path = join(directory, '.env');
     writeFileSync(path, 'NAVER_EMAIL=test@naver.com\nNAVER_APP_PASSWORD="fixture-only"\nNAVER_ENABLE_SEND=true\nNAVER_SENDER_NAME="한글 # 이름"\n');
-    const config = loadConfig({ NAVER_ENV_FILE: path, NAVER_ENABLE_SEND: 'false' });
+    const config = loadConfig({ NAVER_ENV_FILE: path, NAVER_ENABLE_SEND: 'false', NAVER_EMAIL: '', NAVER_APP_PASSWORD: '' });
     assert.equal(config.senderName, '한글 # 이름'); assert.equal(config.enableSend, false); assert.equal(config.password, 'fixture-only');
     assert.throws(() => loadConfig({ NAVER_ENV_FILE: join(directory, 'missing') }), /Cannot read/);
   } finally { rmSync(directory, { recursive: true, force: true }); }

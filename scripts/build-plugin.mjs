@@ -23,7 +23,8 @@ if (entries.length) {
 // Copy a fixed allowlist, never the repository tree or its .env/.local/attachments.
 const copies = [
   ['plugin/.codex-plugin/plugin.json', '.codex-plugin/plugin.json'],
-  ['plugin/.mcp.json', '.mcp.json'],
+  ['plugin/.codex-mcp.json', '.codex-mcp.json'],
+  ['plugin/.claude-plugin/plugin.json', '.claude-plugin/plugin.json'],
   ['plugin/scripts/start.mjs', 'scripts/start.mjs'],
   ['plugin/server/index.js', 'server/index.js'],
   ['plugin/README.md', 'README.md'],

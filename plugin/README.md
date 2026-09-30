@@ -1,11 +1,12 @@
-# NAVER Mail — Codex plugin
+# NAVER Mail — Codex · Claude plugin
 
 네이버 메일 검색·읽기·텍스트/HTML 발송·첨부파일 처리를 제공하는 비공식 로컬 플러그인입니다.
 Node.js 22 이상이 필요합니다. NAVER, OpenAI, Anthropic과 제휴 관계가 없습니다.
 
 ## 시작하기
 
-설치한 뒤 **새 대화**에서 이렇게 말하세요.
+Claude 는 설치할 때 네이버 주소와 애플리케이션 비밀번호를 물어봅니다. 입력했다면 바로 사용할 수 있습니다.
+Codex 는(또는 Claude 에서 입력을 건너뛰었다면) 설치한 뒤 **새 대화**에서 이렇게 말하세요.
 
 > "네이버 메일 설정해 줘"
 
@@ -40,7 +41,7 @@ NAVER_ENABLE_SEND=true
 
 `server/index.js`는 실행 의존성을 모두 포함한 단일 파일입니다. 시작할 때 npm 설치나 다운로드를 하지 않습니다.
 계정 설정, 메일, 다운로드한 첨부파일은 이 폴더에 포함되지 않습니다.
-플러그인 제거는 Codex 앱의 플러그인 화면 또는 `codex plugin remove naver-mail-mcp@gentler`로 합니다.
+플러그인 제거는 Codex 는 `codex plugin remove naver-mail-mcp@gentler`, Claude 는 `/plugin uninstall naver-mail-mcp@gentler` 로 합니다.
 계정 설정(`~/.naver-mail-mcp`)과 첨부파일은 별도로 남으므로 필요하면 직접 삭제하세요.
 
 MIT License. 번들에 포함된 의존성은 각자의 라이선스를 따릅니다.

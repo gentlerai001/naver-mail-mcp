@@ -295,6 +295,17 @@ async function installClaudeDesktop(cfgPath) {
 }
 
 async function installClaudeCode() {
+  // 1순위: 이 폴더를 마켓플레이스로 등록하고 플러그인으로 설치
+  if (existsSync(join(root, 'plugin', 'server', 'index.js'))) {
+    run('claude', ['plugin', 'marketplace', 'add', root], { quiet: true });
+    const add = run('claude', ['plugin', 'install', 'naver-mail-mcp@gentler'], { quiet: true });
+    if (add.status === 0) {
+      run('claude', ['mcp', 'remove', 'naver-mail', '-s', 'user'], { quiet: true });
+      console.log(dim('    플러그인으로 설치했습니다: naver-mail-mcp@gentler'));
+      return;
+    }
+  }
+  // 2순위: 일반 MCP 서버 등록
   run('claude', ['mcp', 'remove', 'naver-mail', '-s', 'user'], { quiet: true });
   const r = run('claude', ['mcp', 'add', 'naver-mail', '-s', 'user', '-e', `NAVER_ENV_FILE=${envFile}`, '--', nodeExe, distEntry], { quiet: true });
   if (r.status !== 0) throw new Error((r.stderr || r.stdout || '').trim().split('\n')[0] || 'claude mcp add 실패');
