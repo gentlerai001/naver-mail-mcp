@@ -6,11 +6,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/gentlerai001/naver-mail-mcp.git"
+    "url": "https://github.com/gentlerai001/gentler-plugins.git"
   },
-  "homepage": "https://github.com/gentlerai001/naver-mail-mcp#readme",
+  "homepage": "https://github.com/gentlerai001/gentler-plugins#readme",
   "bugs": {
-    "url": "https://github.com/gentlerai001/naver-mail-mcp/issues"
+    "url": "https://github.com/gentlerai001/gentler-plugins/issues"
   },
   "engines": {
     "node": ">=22"

@@ -1,0 +1,11 @@
+{
+  "name": "deep-interview",
+  "displayName": "Deep Interview",
+  "version": "0.1.0",
+  "description": "막연한 아이디어를 실행 전에 한 번에 하나씩 질문해 모호성 점수가 기준 아래로 내려갈 때까지 좁히고, 승인 대기 명세서로 정리합니다.",
+  "author": { "name": "Gentler", "url": "https://github.com/gentlerai001" },
+  "homepage": "https://github.com/gentlerai001/gentler-plugins/tree/main/plugins/deep-interview",
+  "repository": "https://github.com/gentlerai001/gentler-plugins",
+  "license": "MIT",
+  "keywords": ["interview", "requirements", "socratic", "spec", "planning", "korean"]
+}

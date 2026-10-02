@@ -6,8 +6,8 @@
     "name": "NAVER Mail MCP contributors"
   },
   "license": "MIT",
-  "repository": "https://github.com/gentlerai001/naver-mail-mcp",
-  "homepage": "https://github.com/gentlerai001/naver-mail-mcp#readme",
+  "repository": "https://github.com/gentlerai001/gentler-plugins",
+  "homepage": "https://github.com/gentlerai001/gentler-plugins#readme",
   "keywords": [
     "naver",
     "email",

@@ -20,8 +20,8 @@
 Node.js 22 이상이 필요합니다.
 
 ```sh
-git clone https://github.com/gentlerai001/naver-mail-mcp.git
-cd naver-mail-mcp
+git clone https://github.com/gentlerai001/gentler-plugins.git
+cd gentler-plugins
 npm ci
 npm run build
 ```
@@ -123,7 +123,7 @@ claude mcp get naver-mail
 ### Claude Code / Cowork (플러그인)
 
 ```text
-/plugin marketplace add gentlerai001/naver-mail-mcp
+/plugin marketplace add gentlerai001/gentler-plugins
 /plugin install naver-mail-mcp@gentler
 ```
 
@@ -150,7 +150,7 @@ npm run build:mcpb        # release/naver-mail-mcp-<버전>.mcpb 생성 (mcpb va
 ### Codex
 
 ```sh
-codex plugin marketplace add gentlerai001/naver-mail-mcp   # 또는 로컬 클론 경로
+codex plugin marketplace add gentlerai001/gentler-plugins   # 또는 로컬 클론 경로
 codex plugin add naver-mail-mcp@gentler
 ```
 

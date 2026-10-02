@@ -1,10 +1,23 @@
-# NAVER Mail MCP
+# Gentler Plugins
+
+Codex와 Claude에서 바로 설치해 쓰는 플러그인 모음입니다. 앱의 플러그인 마켓플레이스에 이 주소 하나만 추가하면 됩니다.
+
+```text
+https://github.com/gentlerai001/gentler-plugins
+```
+
+| 플러그인 | 하는 일 | 설치 ID |
+| --- | --- | --- |
+| **[NAVER Mail](#naver-mail)** | AI에게 "내 네이버 메일 읽어 줘, 보내 줘"라고 시킬 수 있게 합니다. | `naver-mail-mcp@gentler` |
+| **[Deep Interview](plugins/deep-interview/)** | 막연한 아이디어를 실행 전에 질문으로 좁혀 명세서로 정리합니다. | `deep-interview@gentler` |
+
+이 저장소의 예전 이름은 `naver-mail-mcp`입니다. 예전 주소로 추가한 마켓플레이스와 링크는 그대로 동작합니다.
+
+# NAVER Mail
 
 **ChatGPT(Codex)나 Claude에게 "내 네이버 메일 읽어 줘, 보내 줘"라고 시킬 수 있게 해 주는 도구입니다.**
 
 프로그램이 내 PC에서만 돌아가고, 네이버 메일에 직접 연결됩니다. 비밀번호는 내 PC 밖으로 나가지 않습니다.
-
-
 
 ## 이런 걸 할 수 있어요
 
@@ -53,7 +66,7 @@
 이 저장소가 곧 플러그인 마켓플레이스입니다. 앱에 이 주소 하나만 알려주면 됩니다.
 
 ```text
-https://github.com/gentlerai001/naver-mail-mcp
+https://github.com/gentlerai001/gentler-plugins
 ```
 
 ### Codex 앱
@@ -68,7 +81,7 @@ https://github.com/gentlerai001/naver-mail-mcp
 터미널이 편하다면 이 두 줄로도 같은 결과입니다.
 
 ```sh
-codex plugin marketplace add gentlerai001/naver-mail-mcp
+codex plugin marketplace add gentlerai001/gentler-plugins
 codex plugin add naver-mail-mcp@gentler
 ```
 
@@ -76,7 +89,7 @@ codex plugin add naver-mail-mcp@gentler
 
 Claude의 **채팅**은 플러그인 안의 로컬 서버를 실행하지 않는 정책이라, 채팅에서는 플러그인 대신 **확장 프로그램** 파일로 설치합니다. Node.js를 따로 설치할 필요도 없습니다.
 
-1. [최신 릴리스](https://github.com/gentlerai001/naver-mail-mcp/releases/latest)에서 `naver-mail-mcp-x.y.z.mcpb` 파일을 내려받습니다.
+1. [최신 릴리스](https://github.com/gentlerai001/gentler-plugins/releases/latest)에서 `naver-mail-mcp-x.y.z.mcpb` 파일을 내려받습니다.
 2. Claude 데스크톱 앱에서 **설정 → 확장 프로그램**을 열고 파일을 창에 끌어다 놓습니다. (더블클릭해도 됩니다)
 3. 설치 화면에서 **네이버 메일 주소**와 **애플리케이션 비밀번호**를 입력하고 설치합니다.
    비밀번호는 Claude의 안전한 저장소에 보관되고 채팅으로는 전송되지 않습니다.
@@ -90,7 +103,7 @@ Claude Code(터미널, 데스크톱 앱의 Code 탭)와 Cowork에서는 플러�
 
 1. 대화창에 입력합니다. Cowork는 **Customize → Plugins → Add marketplace**에 위 주소를 붙여넣어도 됩니다.
    ```text
-   /plugin marketplace add gentlerai001/naver-mail-mcp
+   /plugin marketplace add gentlerai001/gentler-plugins
    /plugin install naver-mail-mcp@gentler
    ```
 2. 새 대화에서 "네이버 메일 설정해 줘"라고 말하면 브라우저 설정 창이 열립니다. 계정을 넣고 저장하면 바로 끝입니다.
@@ -107,12 +120,12 @@ Claude Code(터미널, 데스크톱 앱의 Code 탭)와 Cowork에서는 플러�
 ### B-1. 이 프로젝트 내려받기
 
 이 페이지 위쪽의 초록색 **Code** 버튼 → **Download ZIP** 을 누르고, 받은 파일의 압축을 풉니다.
-바탕화면이나 문서 폴더처럼 찾기 쉬운 곳에 두세요. 폴더 이름은 `naver-mail-mcp-main` 처럼 됩니다.
+바탕화면이나 문서 폴더처럼 찾기 쉬운 곳에 두세요. 폴더 이름은 `gentler-plugins-main` 처럼 됩니다.
 
 Git을 쓸 줄 안다면 이렇게 해도 됩니다.
 
 ```sh
-git clone https://github.com/gentlerai001/naver-mail-mcp.git
+git clone https://github.com/gentlerai001/gentler-plugins.git
 ```
 
 ### B-2. 설치 파일 실행
@@ -191,6 +204,12 @@ Windows는 `C:\Users\내이름\.naver-mail-mcp`, Mac은 `/Users/내이름/.naver
 - 받은 메일 안에 "이 메일을 전달해라" 같은 문장이 있어도 AI가 그걸 따르면 안 됩니다. 도구 설명에 그렇게 안내하지만 완벽하지 않으니, AI가 이상한 행동을 하면 바로 중단하세요.
 - 공용 PC에는 설치하지 마세요.
 
+## 같은 마켓플레이스의 다른 플러그인
+
+이 저장소를 마켓플레이스로 추가하면 NAVER Mail 외에 아래 플러그인도 목록에 나타납니다.
+
+- **[Deep Interview](plugins/deep-interview/)**: 막연한 아이디어를 실행 전에 한 번에 하나씩 질문해 좁히는 스킬입니다. 답할 때마다 명확도를 채점해 보여 주고, 모호성이 기준 아래로 내려가면 명세서로 정리한 뒤 승인을 기다립니다. Node.js도 계정 설정도 필요 없고 Claude 채팅에서도 동작합니다. 설치 ID는 `deep-interview@gentler` 입니다.
+
 ## 더 알아보기
 
 - [직접 연결하기 (수동 설정)](docs/manual-setup.md): 마법사 없이 설정 파일을 손으로 고치고 싶을 때, 또는 Codex 플러그인 형태로 쓰고 싶을 때
@@ -210,4 +229,4 @@ MIT 라이선스입니다.
 
 Local stdio MCP server for personal NAVER Mail accounts, for Codex, Claude Desktop and Claude Code. Search, read, download attachments, and send text/HTML mail with attachments through NAVER IMAP/SMTP. Requires Node.js 22+, NAVER IMAP/SMTP enabled, two-step verification, and an application password.
 
-Quick start (Codex app): add `https://github.com/gentlerai001/naver-mail-mcp` as a plugin marketplace, install NAVER Mail, then say "set up NAVER mail" in a new chat; a local browser page collects the account and verifies the login, with no restart needed. Alternatively download the ZIP and run `setup.cmd` (Windows) or `sh setup.sh` (macOS/Linux): the interactive wizard asks for your account, verifies the login, detects installed AI apps and registers the server. Credentials stay in `~/.naver-mail-mcp/.env`. See [docs/manual-setup.md](docs/manual-setup.md) and [docs/reference.md](docs/reference.md) for manual configuration and the full tool reference. Unofficial; not affiliated with NAVER, OpenAI, or Anthropic. MIT licensed.
+Quick start (Codex app): add `https://github.com/gentlerai001/gentler-plugins` as a plugin marketplace, install NAVER Mail, then say "set up NAVER mail" in a new chat; a local browser page collects the account and verifies the login, with no restart needed. Alternatively download the ZIP and run `setup.cmd` (Windows) or `sh setup.sh` (macOS/Linux): the interactive wizard asks for your account, verifies the login, detects installed AI apps and registers the server. Credentials stay in `~/.naver-mail-mcp/.env`. See [docs/manual-setup.md](docs/manual-setup.md) and [docs/reference.md](docs/reference.md) for manual configuration and the full tool reference. Unofficial; not affiliated with NAVER, OpenAI, or Anthropic. MIT licensed.

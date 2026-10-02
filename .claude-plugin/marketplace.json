@@ -1,6 +1,6 @@
 {
   "name": "gentler",
-  "description": "Gentler plugins: NAVER Mail for Claude",
+  "description": "Gentler plugins: NAVER Mail, Deep Interview",
   "owner": {
     "name": "Gentler",
     "url": "https://github.com/gentlerai001"
@@ -12,7 +12,27 @@
       "displayName": "NAVER Mail",
       "description": "네이버 메일 검색·읽기·HTML 발송·첨부파일. 설치 후 계정을 입력하거나 \"네이버 메일 설정해 줘\"라고 말하면 됩니다.",
       "category": "productivity",
-      "tags": ["naver", "email", "imap", "smtp", "korean"]
+      "tags": [
+        "naver",
+        "email",
+        "imap",
+        "smtp",
+        "korean"
+      ]
+    },
+    {
+      "name": "deep-interview",
+      "source": "./plugins/deep-interview",
+      "displayName": "Deep Interview",
+      "description": "막연한 아이디어를 실행 전에 한 번에 하나씩 질문해 모호성 점수가 기준 아래로 내려갈 때까지 좁히고 명세서로 정리합니다.",
+      "category": "productivity",
+      "tags": [
+        "interview",
+        "requirements",
+        "spec",
+        "planning",
+        "korean"
+      ]
     }
   ]
 }

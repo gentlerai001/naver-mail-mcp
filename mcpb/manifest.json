@@ -7,15 +7,15 @@
   "long_description": "내 PC에서 네이버 IMAP·SMTP에 직접 연결합니다. 받은메일함 검색과 본문 조회, 텍스트·HTML 메일 발송, 첨부파일 내려받기와 첨부 발송을 지원합니다.\n\n설치할 때 네이버 메일 주소와 **애플리케이션 비밀번호**를 입력합니다. 비밀번호는 Claude의 안전한 저장소에만 보관되고 채팅으로 전송되지 않습니다.\n\n준비물: 네이버 메일 환경설정에서 IMAP/SMTP 사용함, 네이버ID 보안설정에서 2단계 인증과 애플리케이션 비밀번호.\n\nNAVER, Anthropic과 무관한 비공식 오픈소스 프로젝트입니다.",
   "author": {
     "name": "NAVER Mail MCP contributors",
-    "url": "https://github.com/gentlerai001/naver-mail-mcp"
+    "url": "https://github.com/gentlerai001/gentler-plugins"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/gentlerai001/naver-mail-mcp"
+    "url": "https://github.com/gentlerai001/gentler-plugins"
   },
-  "homepage": "https://github.com/gentlerai001/naver-mail-mcp#readme",
-  "documentation": "https://github.com/gentlerai001/naver-mail-mcp/blob/main/README.md",
-  "support": "https://github.com/gentlerai001/naver-mail-mcp/issues",
+  "homepage": "https://github.com/gentlerai001/gentler-plugins#readme",
+  "documentation": "https://github.com/gentlerai001/gentler-plugins/blob/main/README.md",
+  "support": "https://github.com/gentlerai001/gentler-plugins/issues",
   "license": "MIT",
   "keywords": ["naver", "email", "mail", "imap", "smtp", "attachments", "korean"],
   "server": {

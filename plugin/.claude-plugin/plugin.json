@@ -5,10 +5,10 @@
   "description": "네이버 메일 검색·읽기·HTML 발송·첨부파일을 Claude에서 사용합니다. 내 PC에서 네이버 IMAP·SMTP에 직접 연결합니다.",
   "author": {
     "name": "NAVER Mail MCP contributors",
-    "url": "https://github.com/gentlerai001/naver-mail-mcp"
+    "url": "https://github.com/gentlerai001/gentler-plugins"
   },
-  "homepage": "https://github.com/gentlerai001/naver-mail-mcp#readme",
-  "repository": "https://github.com/gentlerai001/naver-mail-mcp",
+  "homepage": "https://github.com/gentlerai001/gentler-plugins#readme",
+  "repository": "https://github.com/gentlerai001/gentler-plugins",
   "license": "MIT",
   "keywords": [
     "naver",
